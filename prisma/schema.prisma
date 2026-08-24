@@ -1,0 +1,191 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  avatarUrl String?  // Novo campo para a URL da foto de perfil
+  role      String   @default("USER") // USER, ADMIN, AGRONOMIST
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  properties Property[]
+  propertyMemberships PropertyMember[]
+}
+
+model Property {
+  id          String   @id @default(uuid())
+  userId      String
+  name        String
+  city        String
+  state       String
+  totalArea   Float    // hectares
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fields      Field[]
+  members     PropertyMember[]
+}
+
+model PropertyMember {
+  id         String   @id @default(uuid())
+  propertyId String
+  userId     String
+  role       String   @default("MEMBER") // OWNER, MANAGER, MEMBER, STUDENT
+  createdAt  DateTime @default(now())
+
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([propertyId, userId])
+}
+
+model Field {
+  id          String   @id @default(uuid())
+  propertyId  String
+  name        String
+  area        Float    // hectares
+  crop        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  soilAnalyses SoilAnalysis[]
+}
+
+model SoilAnalysis {
+  id              String   @id @default(uuid())
+  fieldId         String
+  date            DateTime
+  depth           String   // e.g. "0-20cm", "20-40cm"
+  laboratory      String?
+  methodology     String?  // e.g. "Cerrado", "Boletim 100"
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  field           Field    @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  
+  // Novos campos para planejamento de safra
+  culturaAnterior String?
+  culturaDesejada String?
+  sistemaCultivo  String?
+  produtividade   Float?   // Produtividade alcançada na área (para histórico)
+  observacoes     String?
+  
+  parameters      SoilParameter[]
+  recommendations NutrientRecommendation[]
+  strategies      FertilizationStrategy[]
+  physicalChars   PhysicalCharacteristics?
+  cropPlannings   CropPlanning[]
+}
+
+model PhysicalCharacteristics {
+  id              String   @id @default(uuid())
+  soilAnalysisId  String   @unique
+  argila          Float?
+  silte           Float?
+  areia           Float?
+  classeTextural  String?
+  densidade       Float?
+  
+  soilAnalysis    SoilAnalysis @relation(fields: [soilAnalysisId], references: [id], onDelete: Cascade)
+}
+
+model CropPlanning {
+  id              String   @id @default(uuid())
+  soilAnalysisId  String
+  fase            String   // e.g. "Plantio", "1ª Cobertura", "2ª Cobertura"
+  diasPosPlantio  Int?
+  fertilizerId    String?
+  doseKgHa        Float?
+  
+  soilAnalysis    SoilAnalysis @relation(fields: [soilAnalysisId], references: [id], onDelete: Cascade)
+  fertilizer      Fertilizer?  @relation(fields: [fertilizerId], references: [id], onDelete: SetNull)
+}
+
+model SoilParameter {
+  id              String   @id @default(uuid())
+  soilAnalysisId  String
+  element         String   // pH, P, K, Ca, Mg, MO...
+  value           Float
+  unit            String   // mg/dm3, cmolc/dm3, %...
+  
+  soilAnalysis    SoilAnalysis @relation(fields: [soilAnalysisId], references: [id], onDelete: Cascade)
+}
+
+// ---- Motor Agronômico (Regras baseadas em tabelas) ----
+
+model RecommendationMethod {
+  id          String   @id @default(uuid())
+  name        String   // "Boletim 100 SP", "Cerrado"
+  region      String
+  year        Int
+  rules       RecommendationRule[]
+}
+
+model RecommendationRule {
+  id          String   @id @default(uuid())
+  methodId    String
+  crop        String
+  parameter   String   // "P", "K", "V%"
+  rangeMin    Float
+  rangeMax    Float
+  classLevel  String   // "Baixo", "Médio", "Alto"
+  formula     String   // E.g., "50" or "(V2 - V1) * CTC / 100"
+  
+  method      RecommendationMethod @relation(fields: [methodId], references: [id], onDelete: Cascade)
+}
+
+// ---- Recomendações e Custos ----
+
+model NutrientRecommendation {
+  id              String   @id @default(uuid())
+  soilAnalysisId  String
+  nutrient        String   // "N", "P2O5", "K2O"
+  recommendedDose Float    // in kg/ha
+  
+  soilAnalysis    SoilAnalysis @relation(fields: [soilAnalysisId], references: [id], onDelete: Cascade)
+}
+
+model Fertilizer {
+  id          String   @id @default(uuid())
+  name        String   // "MAP", "KCl", "08-28-16"
+  composition Json     // {"N": 11, "P2O5": 52, "K2O": 0}
+  
+  strategyItems StrategyItem[]
+  cropPlannings CropPlanning[]
+}
+
+model FertilizationStrategy {
+  id              String   @id @default(uuid())
+  soilAnalysisId  String
+  name            String   // "Opção 1", "Alto Investimento"
+  totalCost       Float?
+  createdAt       DateTime @default(now())
+  
+  soilAnalysis    SoilAnalysis @relation(fields: [soilAnalysisId], references: [id], onDelete: Cascade)
+  items           StrategyItem[]
+}
+
+model StrategyItem {
+  id            String   @id @default(uuid())
+  strategyId    String
+  fertilizerId  String
+  doseKgHa      Float
+  pricePerTon   Float?
+  
+  strategy      FertilizationStrategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+  fertilizer    Fertilizer @relation(fields: [fertilizerId], references: [id], onDelete: Restrict)
+}

@@ -1,36 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Cultiva (powered by FIG AgroTech)
 
-## Getting Started
+O Cultiva e uma plataforma inteligente desenvolvida para modernizar a gestao agronomica e revolucionar a forma como produtores e agronomos tomam decisoes no campo.
 
-First, run the development server:
+## Sobre o Projeto
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+O grande diferencial do sistema e o Motor Agronomico IA, uma inteligencia artificial embarcada que le automaticamente laudos complexos de analises de solo e extrai os dados estruturados de forma rapida e sem necessidade de digitacao manual de inumeros parametros.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Com os dados laboratoriais extraidos, o motor matematico do sistema avalia instantaneamente a fertilidade do talhao e gera um planejamento completo de safra. O sistema realiza os calculos de:
+- Necessidade de calagem (toneladas de calcario por hectare) baseado no metodo de Saturacao por Bases (V%).
+- Recomendacao exata de adubacao base (NPK) e de cobertura.
+- Extracao e exportacao de nutrientes com base na cultura selecionada e na expectativa de produtividade.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Principais Funcionalidades
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Gestao de Areas
+Cadastro estruturado de propriedades e talhoes, permitindo que o profissional gerencie multiplas fazendas e clientes de forma centralizada.
 
-## Learn More
+2. Automacao de Laudos por IA
+Integracao direta com modelos de linguagem (Google Gemini) para leitura de laudos laboratoriais, convertendo texto livre ou documentos em parametros quimicos e fisicos de solo estritamente tipados.
 
-To learn more about Next.js, take a look at the following resources:
+3. Motor Agronomico
+Calculos automaticos de correcao de solo e nutricao de plantas focados em maximizar a produtividade. O sistema processa os requerimentos nutricionais das principais culturas brasileiras (Soja, Milho, Feijao, Algodao, Arroz, Cafe, entre outras).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Tecnologias Utilizadas
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Next.js (App Router)
+- React
+- TypeScript
+- Tailwind CSS
+- Prisma ORM
+- Supabase (PostgreSQL)
+- NextAuth.js
+- Google Generative AI (Gemini)
 
-## Deploy on Vercel
+## Como Executar Localmente
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Clone o repositorio.
+2. Instale as dependencias executando:
+   npm install
+3. Configure o arquivo .env com as suas chaves de API:
+   DATABASE_URL
+   NEXTAUTH_SECRET
+   NEXTAUTH_URL
+   GEMINI_API_KEY
+4. Inicie o servidor de desenvolvimento:
+   npm run dev
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Hospedagem
+
+O projeto foi arquitetado para ser "serverless-ready", sendo perfeitamente compativel com hospedagem nativa na Vercel, com banco de dados em nuvem operado pelo Supabase.
