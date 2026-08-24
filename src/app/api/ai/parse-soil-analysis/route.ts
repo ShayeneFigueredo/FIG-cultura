@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
+import { GoogleGenerativeAI, SchemaType, Schema } from "@google/generative-ai";
 
 export async function POST(req: Request) {
   try {
@@ -23,7 +23,7 @@ Extraia as seguintes informações se disponíveis, caso não encontre algo reto
 Use seu conhecimento agronômico para interpretar unidades. O potássio (K) pode vir em mg/dm³ ou cmolc/dm³. Transforme vírgulas decimais em pontos decimais no output numérico.
 Se o produtor informar "vou plantar soja", coloque "soja" em culturaDesejada.`;
 
-    const schema = {
+    const schema: Schema = {
       type: SchemaType.OBJECT,
       properties: {
         dadosIniciais: {
