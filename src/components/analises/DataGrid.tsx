@@ -63,13 +63,13 @@ export default function DataGrid({ analyses }: { analyses: GridAnalysis[] }) {
 
               const renderVal = (v: any) => (v === undefined || v === null || v === '') ? '-' : v;
 
-              const vPercent = pMap["V%"] ?? pMap["V"] ?? pMap["V_percent"];
-              const hasV = vPercent !== undefined;
+              const vPercent = Number(pMap["V%"] ?? pMap["V"] ?? pMap["V_percent"]);
+              const hasV = !isNaN(vPercent);
               const acidezClass = !hasV ? "—" : vPercent < 50 ? "⚠️ Atenção" : "🟢 Adequado";
-              const pValue = pMap["P"];
-              const pClass = pValue === undefined ? "—" : pValue < 15 ? "🔴 Baixo" : "🟢 Adequado";
-              const kValue = pMap["K"];
-              const kClass = kValue === undefined ? "—" : kValue < 0.15 ? "🔴 Baixo" : (kValue < 0.3 ? "🟡 Médio" : "🟢 Adequado");
+              const pValue = Number(pMap["P"]);
+              const pClass = isNaN(pValue) ? "—" : pValue < 15 ? "🔴 Baixo" : "🟢 Adequado";
+              const kValue = Number(pMap["K"]);
+              const kClass = isNaN(kValue) ? "—" : kValue < 0.15 ? "🔴 Baixo" : (kValue < 0.3 ? "🟡 Médio" : "🟢 Adequado");
 
               return (
                 <tr key={analysis.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors group">

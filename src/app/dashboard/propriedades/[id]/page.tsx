@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { ArrowLeft, Map, Plus, Ruler, Tractor, Users } from "lucide-react";
+import { ArrowLeft, Map, Plus, Ruler, Tractor, Users, MapPin, Sprout } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
