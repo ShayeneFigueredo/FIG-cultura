@@ -61,17 +61,17 @@ export default function ProfileForm({ user }: { user: ProfileData }) {
         />
         
         <div className="flex-1 w-full space-y-1">
-          <label className="text-sm font-medium text-white/80 block">Foto de Perfil</label>
-          <p className="text-xs text-white/40">Clique na imagem para selecionar do seu computador ou tirar uma foto com a câmera do seu dispositivo.</p>
+          <label className="text-sm font-medium text-black/80 dark:text-white/80 block">Foto de Perfil</label>
+          <p className="text-xs text-black/40 dark:text-white/40">Clique na imagem para selecionar do seu computador ou tirar uma foto com a câmera do seu dispositivo.</p>
         </div>
       </div>
 
-      <div className="space-y-5">
-        <div className="group relative">
-          <label className="text-sm font-medium text-white/80 block mb-1.5">Nome Completo</label>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-              <User className="h-5 w-5 text-white/40 transition-colors group-focus-within:text-brand-main" />
+      <div className="space-y-6">
+        <div>
+          <label className="text-sm font-medium text-black/80 dark:text-white/80 block mb-1.5">Nome Completo</label>
+          <div className="relative group">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <User className="h-5 w-5 text-black/40 dark:text-white/40 transition-colors group-focus-within:text-brand-main" />
             </div>
             <input
               type="text"
@@ -79,16 +79,16 @@ export default function ProfileForm({ user }: { user: ProfileData }) {
               placeholder="Seu nome"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="block w-full pl-11 pr-4 py-3 bg-black/40 border border-white/10 rounded-lg text-sm transition-all focus:bg-white/5 focus:border-brand-main/50 focus:ring-1 focus:ring-brand-main/50 outline-none text-white"
+              className="block w-full pl-11 pr-4 py-3 bg-white dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg text-sm transition-all focus:bg-white dark:focus:bg-white/5 focus:border-brand-main/50 focus:ring-1 focus:ring-brand-main/50 outline-none text-black dark:text-white"
             />
           </div>
         </div>
 
-        <div className="group relative">
-          <label className="text-sm font-medium text-white/80 block mb-1.5">E-mail</label>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-              <Mail className="h-5 w-5 text-white/40 transition-colors group-focus-within:text-brand-main" />
+        <div>
+          <label className="text-sm font-medium text-black/80 dark:text-white/80 block mb-1.5">E-mail</label>
+          <div className="relative group">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <Mail className="h-5 w-5 text-black/40 dark:text-white/40 transition-colors group-focus-within:text-brand-main" />
             </div>
             <input
               type="email"
@@ -96,7 +96,7 @@ export default function ProfileForm({ user }: { user: ProfileData }) {
               placeholder="seu@email.com"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="block w-full pl-11 pr-4 py-3 bg-black/40 border border-white/10 rounded-lg text-sm transition-all focus:bg-white/5 focus:border-brand-main/50 focus:ring-1 focus:ring-brand-main/50 outline-none text-white"
+              className="block w-full pl-11 pr-4 py-3 bg-white dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg text-sm transition-all focus:bg-white dark:focus:bg-white/5 focus:border-brand-main/50 focus:ring-1 focus:ring-brand-main/50 outline-none text-black dark:text-white"
             />
           </div>
         </div>
@@ -119,7 +119,7 @@ export default function ProfileForm({ user }: { user: ProfileData }) {
         <button
           type="submit"
           disabled={loading}
-          className="flex items-center gap-2 py-2.5 px-6 border border-transparent rounded-lg text-sm font-medium text-white bg-brand-main hover:bg-brand-light transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-main focus:ring-offset-black shadow-[0_0_15px_rgba(107,175,58,0.2)] hover:shadow-[0_0_20px_rgba(147,198,62,0.4)] disabled:opacity-70 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 py-2.5 px-6 border border-transparent rounded-lg text-sm font-medium text-white bg-brand-main hover:bg-brand-light transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-main focus:ring-offset-white dark:focus:ring-offset-black shadow-[0_0_15px_rgba(107,175,58,0.2)] hover:shadow-[0_0_20px_rgba(147,198,62,0.4)] disabled:opacity-70 disabled:cursor-not-allowed"
         >
           {loading ? (
             <>

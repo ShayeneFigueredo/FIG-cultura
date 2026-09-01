@@ -1,8 +1,9 @@
 @import "tailwindcss";
+@custom-variant dark (&:is(.dark *));
 
 @theme {
   --color-brand-light: #93C63E;
-  --color-brand-main: #6BAF3A;
+  --color-brand-main: #4A8B28; /* Verde mais escuro para maior contraste no fundo branco */
   --color-brand-accent: #F99D1C;
   --color-brand-dark: #3A1A1A;
 
@@ -15,7 +16,7 @@
   --color-popover: #ffffff;
   --color-popover-foreground: #09090b;
 
-  --color-primary: #6BAF3A;
+  --color-primary: #4A8B28;
   --color-primary-foreground: #ffffff;
 
   --color-secondary: #f4f4f5;
@@ -32,13 +33,31 @@
 
   --color-border: #e4e4e7;
   --color-input: #e4e4e7;
-  --color-ring: #6BAF3A;
+  --color-ring: #4A8B28;
 
   --radius-lg: 0.5rem;
   --radius-md: calc(0.5rem - 2px);
   --radius-sm: calc(0.5rem - 4px);
 
-  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+}
+
+@theme dark {
+  --color-brand-main: #6BAF3A; /* Mantém o verde brilhante no modo escuro */
+  --color-primary: #6BAF3A;
+  --color-ring: #6BAF3A;
+  --color-background: #000000;
+  --color-foreground: #ffffff;
+  --color-card: #09090b;
+  --color-card-foreground: #ffffff;
+  --color-popover: #09090b;
+  --color-popover-foreground: #ffffff;
+  --color-secondary: #27272a;
+  --color-secondary-foreground: #fafafa;
+  --color-muted: #27272a;
+  --color-muted-foreground: #a1a1aa;
+  --color-border: #27272a;
+  --color-input: #27272a;
 }
 
 @layer base {
@@ -47,8 +66,7 @@
   }
 
   body {
-    @apply bg-background text-foreground;
-    background-image: radial-gradient(ellipse at top, #f4f4f5, var(--color-background), var(--color-background));
+    @apply bg-background text-foreground transition-colors duration-300;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }

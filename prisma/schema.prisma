@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,41 +8,39 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  password  String
-  avatarUrl String?  // Novo campo para a URL da foto de perfil
-  role      String   @default("USER") // USER, ADMIN, AGRONOMIST
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  properties Property[]
+  id                  String           @id @default(uuid())
+  name                String
+  email               String           @unique
+  password            String
+  role                String           @default("USER")
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  avatarUrl           String?
+  properties          Property[]
   propertyMemberships PropertyMember[]
+  chatSessions        ChatSession[]
 }
 
 model Property {
-  id          String   @id @default(uuid())
-  userId      String
-  name        String
-  city        String
-  state       String
-  totalArea   Float    // hectares
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  fields      Field[]
-  members     PropertyMember[]
+  id        String           @id @default(uuid())
+  userId    String
+  name      String
+  city      String
+  state     String
+  totalArea Float
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  fields    Field[]
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  members   PropertyMember[]
 }
 
 model PropertyMember {
   id         String   @id @default(uuid())
   propertyId String
   userId     String
-  role       String   @default("MEMBER") // OWNER, MANAGER, MEMBER, STUDENT
+  role       String   @default("MEMBER")
   createdAt  DateTime @default(now())
-
   property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -53,139 +48,145 @@ model PropertyMember {
 }
 
 model Field {
-  id          String   @id @default(uuid())
-  propertyId  String
-  name        String
-  area        Float    // hectares
-  crop        String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  id           String         @id @default(uuid())
+  propertyId   String
+  name         String
+  area         Float
+  crop         String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  property     Property       @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   soilAnalyses SoilAnalysis[]
 }
 
 model SoilAnalysis {
-  id              String   @id @default(uuid())
+  id              String                   @id @default(uuid())
   fieldId         String
   date            DateTime
-  depth           String   // e.g. "0-20cm", "20-40cm"
+  depth           String
   laboratory      String?
-  methodology     String?  // e.g. "Cerrado", "Boletim 100"
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  field           Field    @relation(fields: [fieldId], references: [id], onDelete: Cascade)
-  
-  // Novos campos para planejamento de safra
+  methodology     String?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
   culturaAnterior String?
   culturaDesejada String?
   sistemaCultivo  String?
-  produtividade   Float?   // Produtividade alcançada na área (para histórico)
+  produtividade   Float?
   observacoes     String?
-  
-  parameters      SoilParameter[]
-  recommendations NutrientRecommendation[]
-  strategies      FertilizationStrategy[]
-  physicalChars   PhysicalCharacteristics?
   cropPlannings   CropPlanning[]
+  strategies      FertilizationStrategy[]
+  recommendations NutrientRecommendation[]
+  physicalChars   PhysicalCharacteristics?
+  field           Field                    @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  parameters      SoilParameter[]
 }
 
 model PhysicalCharacteristics {
-  id              String   @id @default(uuid())
-  soilAnalysisId  String   @unique
-  argila          Float?
-  silte           Float?
-  areia           Float?
-  classeTextural  String?
-  densidade       Float?
-  
-  soilAnalysis    SoilAnalysis @relation(fields: [soilAnalysisId], references: [id], onDelete: Cascade)
+  id             String       @id @default(uuid())
+  soilAnalysisId String       @unique
+  argila         Float?
+  silte          Float?
+  areia          Float?
+  classeTextural String?
+  densidade      Float?
+  soilAnalysis   SoilAnalysis @relation(fields: [soilAnalysisId], references: [id], onDelete: Cascade)
 }
 
 model CropPlanning {
-  id              String   @id @default(uuid())
-  soilAnalysisId  String
-  fase            String   // e.g. "Plantio", "1ª Cobertura", "2ª Cobertura"
-  diasPosPlantio  Int?
-  fertilizerId    String?
-  doseKgHa        Float?
-  
-  soilAnalysis    SoilAnalysis @relation(fields: [soilAnalysisId], references: [id], onDelete: Cascade)
-  fertilizer      Fertilizer?  @relation(fields: [fertilizerId], references: [id], onDelete: SetNull)
+  id             String       @id @default(uuid())
+  soilAnalysisId String
+  fase           String
+  diasPosPlantio Int?
+  fertilizerId   String?
+  doseKgHa       Float?
+  fertilizer     Fertilizer?  @relation(fields: [fertilizerId], references: [id])
+  soilAnalysis   SoilAnalysis @relation(fields: [soilAnalysisId], references: [id], onDelete: Cascade)
 }
 
 model SoilParameter {
-  id              String   @id @default(uuid())
-  soilAnalysisId  String
-  element         String   // pH, P, K, Ca, Mg, MO...
-  value           Float
-  unit            String   // mg/dm3, cmolc/dm3, %...
-  
-  soilAnalysis    SoilAnalysis @relation(fields: [soilAnalysisId], references: [id], onDelete: Cascade)
+  id             String       @id @default(uuid())
+  soilAnalysisId String
+  element        String
+  value          Float
+  unit           String
+  soilAnalysis   SoilAnalysis @relation(fields: [soilAnalysisId], references: [id], onDelete: Cascade)
 }
 
-// ---- Motor Agronômico (Regras baseadas em tabelas) ----
-
 model RecommendationMethod {
-  id          String   @id @default(uuid())
-  name        String   // "Boletim 100 SP", "Cerrado"
-  region      String
-  year        Int
-  rules       RecommendationRule[]
+  id     String               @id @default(uuid())
+  name   String
+  region String
+  year   Int
+  rules  RecommendationRule[]
 }
 
 model RecommendationRule {
-  id          String   @id @default(uuid())
-  methodId    String
-  crop        String
-  parameter   String   // "P", "K", "V%"
-  rangeMin    Float
-  rangeMax    Float
-  classLevel  String   // "Baixo", "Médio", "Alto"
-  formula     String   // E.g., "50" or "(V2 - V1) * CTC / 100"
-  
-  method      RecommendationMethod @relation(fields: [methodId], references: [id], onDelete: Cascade)
+  id         String               @id @default(uuid())
+  methodId   String
+  crop       String
+  parameter  String
+  rangeMin   Float
+  rangeMax   Float
+  classLevel String
+  formula    String
+  method     RecommendationMethod @relation(fields: [methodId], references: [id], onDelete: Cascade)
 }
 
-// ---- Recomendações e Custos ----
-
 model NutrientRecommendation {
-  id              String   @id @default(uuid())
+  id              String       @id @default(uuid())
   soilAnalysisId  String
-  nutrient        String   // "N", "P2O5", "K2O"
-  recommendedDose Float    // in kg/ha
-  
+  nutrient        String
+  recommendedDose Float
   soilAnalysis    SoilAnalysis @relation(fields: [soilAnalysisId], references: [id], onDelete: Cascade)
 }
 
 model Fertilizer {
-  id          String   @id @default(uuid())
-  name        String   // "MAP", "KCl", "08-28-16"
-  composition Json     // {"N": 11, "P2O5": 52, "K2O": 0}
-  
-  strategyItems StrategyItem[]
+  id            String         @id @default(uuid())
+  name          String
+  composition   Json
   cropPlannings CropPlanning[]
+  strategyItems StrategyItem[]
 }
 
 model FertilizationStrategy {
-  id              String   @id @default(uuid())
-  soilAnalysisId  String
-  name            String   // "Opção 1", "Alto Investimento"
-  totalCost       Float?
-  createdAt       DateTime @default(now())
-  
-  soilAnalysis    SoilAnalysis @relation(fields: [soilAnalysisId], references: [id], onDelete: Cascade)
-  items           StrategyItem[]
+  id             String         @id @default(uuid())
+  soilAnalysisId String
+  name           String
+  totalCost      Float?
+  createdAt      DateTime       @default(now())
+  soilAnalysis   SoilAnalysis   @relation(fields: [soilAnalysisId], references: [id], onDelete: Cascade)
+  items          StrategyItem[]
 }
 
 model StrategyItem {
-  id            String   @id @default(uuid())
-  strategyId    String
-  fertilizerId  String
-  doseKgHa      Float
-  pricePerTon   Float?
+  id           String                @id @default(uuid())
+  strategyId   String
+  fertilizerId String
+  doseKgHa     Float
+  pricePerTon  Float?
+  fertilizer   Fertilizer            @relation(fields: [fertilizerId], references: [id])
+  strategy     FertilizationStrategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+}
+
+// ---- Chat do Mascote (FIGGER) ----
+
+model ChatSession {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   
-  strategy      FertilizationStrategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
-  fertilizer    Fertilizer @relation(fields: [fertilizerId], references: [id], onDelete: Restrict)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  ChatMessage[]
+}
+
+model ChatMessage {
+  id            String   @id @default(uuid())
+  chatSessionId String
+  role          String   // "user" | "ai"
+  text          String
+  createdAt     DateTime @default(now())
+
+  chatSession   ChatSession @relation(fields: [chatSessionId], references: [id], onDelete: Cascade)
 }

@@ -66,7 +66,7 @@ export default async function PropriedadeDetalhes({ params }: { params: Promise<
   return (
     <div className="max-w-5xl">
       <header className="mb-10">
-        <Link href="/dashboard/propriedades" className="inline-flex items-center gap-2 text-white/50 hover:text-white transition-colors mb-4">
+        <Link href="/dashboard/propriedades" className="inline-flex items-center gap-2 text-black/50 dark:text-white/50 hover:text-black dark:hover:text-white transition-colors mb-4">
           <ArrowLeft className="w-4 h-4" /> Voltar para Fazendas
         </Link>
         <div className="flex items-center gap-4">
@@ -74,8 +74,12 @@ export default async function PropriedadeDetalhes({ params }: { params: Promise<
             <Map className="w-6 h-6 text-brand-main" />
           </div>
           <div>
-            <h1 className="text-3xl font-semibold">{property.name}</h1>
-            <p className="text-white/60">{property.city}, {property.state} • {property.totalArea} ha totais</p>
+            <h1 className="text-3xl font-bold text-black dark:text-white">{property.name}</h1>
+            <div className="flex items-center gap-4 text-black/60 dark:text-white/60 mt-1">
+              <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {property.city}, {property.state}</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-black/20 dark:bg-white/20" />
+              <span>{property.totalArea} hectares</span>
+            </div>
           </div>
         </div>
       </header>
@@ -84,24 +88,24 @@ export default async function PropriedadeDetalhes({ params }: { params: Promise<
 
         {/* Formulário de Talhão */}
         <div className="lg:col-span-1">
-          <div className="bg-white/5 border border-white/10 p-6 rounded-2xl lg:sticky lg:top-8">
-            <h2 className="text-xl font-medium mb-6 flex items-center gap-2">
+          <div className="bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 p-6 rounded-2xl sticky top-8">
+            <h2 className="text-xl font-medium mb-6 flex items-center gap-2 text-black dark:text-white">
               <Plus className="w-5 h-5 text-brand-main" /> Novo Talhão
             </h2>
             <form action={createField.bind(null, property.id)} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-white/70 mb-1">Nome/Identificador</label>
-                <input required type="text" name="name" className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/30 focus:outline-none focus:border-brand-main transition-colors" placeholder="Ex: Talhão 01, Gleba A" />
+                <label className="block text-sm font-medium text-black/70 dark:text-white/70 mb-1">Nome/Identificador</label>
+                <input required type="text" name="name" className="w-full bg-white dark:bg-black/50 border border-black/10 dark:border-white/10 rounded-xl px-4 py-2.5 text-black dark:text-white placeholder-black/30 dark:placeholder-white/30 focus:outline-none focus:border-brand-main transition-colors" placeholder="Ex: Talhão 01, Gleba A" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-white/70 mb-1">Área (ha)</label>
-                <input required type="number" step="0.1" min="0.1" name="area" className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/30 focus:outline-none focus:border-brand-main transition-colors" placeholder="Ex: 50" />
+                <label className="block text-sm font-medium text-black/70 dark:text-white/70 mb-1">Área (ha)</label>
+                <input required type="number" step="0.1" min="0.1" name="area" className="w-full bg-white dark:bg-black/50 border border-black/10 dark:border-white/10 rounded-xl px-4 py-2.5 text-black dark:text-white placeholder-black/30 dark:placeholder-white/30 focus:outline-none focus:border-brand-main transition-colors" placeholder="Ex: 50" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-white/70 mb-1">Cultura Atual (Opcional)</label>
-                <input type="text" name="crop" className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/30 focus:outline-none focus:border-brand-main transition-colors" placeholder="Ex: Soja, Milho" />
+                <label className="block text-sm font-medium text-black/70 dark:text-white/70 mb-1">Cultura Atual (Opcional)</label>
+                <input type="text" name="crop" className="w-full bg-white dark:bg-black/50 border border-black/10 dark:border-white/10 rounded-xl px-4 py-2.5 text-black dark:text-white placeholder-black/30 dark:placeholder-white/30 focus:outline-none focus:border-brand-main transition-colors" placeholder="Ex: Soja, Milho" />
               </div>
-              <button type="submit" className="w-full py-3 px-4 bg-white/10 hover:bg-white/20 text-white font-medium rounded-xl transition-all active:scale-[0.98]">
+              <button type="submit" className="w-full py-3 px-4 bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 text-black dark:text-white font-medium rounded-xl transition-all active:scale-[0.98]">
                 Adicionar Talhão
               </button>
             </form>
@@ -111,28 +115,29 @@ export default async function PropriedadeDetalhes({ params }: { params: Promise<
         {/* Lista de Talhões */}
         <div className="lg:col-span-2 space-y-4">
           {property.fields.length === 0 ? (
-            <div className="bg-white/5 border border-white/10 border-dashed rounded-2xl p-12 text-center text-white/50">
-              <Ruler className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>Nenhum talhão registrado nesta propriedade.</p>
-              <p className="text-sm mt-2">Comece adicionando o primeiro talhão ao lado.</p>
+            <div className="text-center py-12 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-2xl border-dashed">
+              <Sprout className="w-12 h-12 text-black/20 dark:text-white/20 mx-auto mb-4" />
+              <p className="text-black/60 dark:text-white/60">Nenhum talhão cadastrado.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {property.fields.map(field => (
-                <div key={field.id} className="bg-white/5 border border-white/10 p-5 rounded-2xl group hover:border-white/20 transition-colors relative overflow-hidden">
-                  <div className="absolute top-0 right-0 p-4 opacity-10 text-white group-hover:opacity-20 transition-opacity">
-                    <Tractor className="w-16 h-16" />
-                  </div>
-                  <h3 className="text-lg font-medium text-white mb-1 relative z-10">{field.name}</h3>
-                  <div className="flex items-center gap-2 text-brand-main font-medium relative z-10 mb-4">
-                    <Ruler className="w-4 h-4" /> {field.area} ha
-                  </div>
-
-                  {field.crop && (
-                    <div className="inline-block px-3 py-1 rounded-full bg-white/10 text-xs text-white/80 relative z-10">
-                      Cultura: {field.crop}
+                <div key={field.id} className="bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 p-6 rounded-2xl hover:border-brand-main/50 transition-colors group">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-xl font-bold text-black dark:text-white mb-2 group-hover:text-brand-main transition-colors">{field.name}</h3>
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-black/60 dark:text-white/60">
+                        <div className="flex items-center gap-1 text-brand-main">
+                          <Ruler className="w-4 h-4" /> {field.area} ha
+                        </div>
+                        {field.crop && (
+                          <span className="px-2 py-0.5 rounded-full bg-black/10 dark:bg-white/10 text-xs">
+                            {field.crop}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
               ))}
             </div>

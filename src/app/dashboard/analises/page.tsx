@@ -50,8 +50,8 @@ export default async function AnalisesPage() {
     <div className="flex-1 min-w-0 flex flex-col min-h-0">
       <header className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8 px-6 lg:px-12">
         <div>
-          <h1 className="text-3xl font-semibold mb-2">Análises de Solo</h1>
-          <p className="text-white/60">Controle de fertilidade, diagnósticos e planejamento de safra.</p>
+          <h1 className="text-3xl font-semibold mb-2 text-black dark:text-white">Análises de Solo</h1>
+          <p className="text-black/60 dark:text-white/60">Controle de fertilidade, diagnósticos e planejamento de safra.</p>
         </div>
         <div className="flex gap-4">
           {analyses.length > 0 && <ExportCsvButton analyses={analyses as unknown as GridAnalysis[]} />}
