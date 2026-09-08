@@ -20,6 +20,8 @@ const UNIT_BY_ELEMENT: Record<string, string> = {
 type PhysicalInput = { argila?: unknown; silte?: unknown; areia?: unknown };
 type ChemicalInput = Record<string, unknown>;
 
+import { generateAndPersistAnalysisPlanning } from "@/lib/agronomy/persistence";
+
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -85,6 +87,9 @@ export async function POST(req: Request) {
       },
       include: { parameters: true, physicalChars: true },
     });
+
+    // Persiste no banco as tabelas de NutrientRecommendation, FertilizationStrategy, StrategyItem e CropPlanning
+    await generateAndPersistAnalysisPlanning(analysis.id);
 
     return NextResponse.json({ id: analysis.id }, { status: 201 });
   } catch (error) {

@@ -147,18 +147,18 @@ export default function RecomendacoesPage() {
   return (
     <div className="flex flex-col md:flex-row h-[calc(100vh-6rem)] w-full overflow-hidden animate-in fade-in duration-500 gap-4">
       {/* Sidebar de Chats */}
-      <div className="w-full md:w-72 flex flex-col bg-white/50 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-2xl backdrop-blur-md overflow-hidden shrink-0 h-48 md:h-full">
-        <div className="p-4 border-b border-black/10 dark:border-white/10">
+      <div className="w-full md:w-72 flex flex-col bg-white border-2 border-slate-200 rounded-2xl shadow-sm overflow-hidden shrink-0 h-48 md:h-full">
+        <div className="p-4 border-b-2 border-slate-200 bg-slate-50">
           <button
             onClick={handleNewChat}
-            className="w-full flex items-center justify-center gap-2 bg-brand-accent text-white font-bold py-2.5 rounded-xl hover:bg-orange-500 transition-all shadow-[0_0_15px_rgba(249,157,28,0.3)]"
+            className="w-full flex items-center justify-center gap-2 bg-brand-accent text-white font-bold py-2.5 rounded-xl hover:bg-orange-500 transition-all shadow-md"
           >
             <Plus className="w-5 h-5" />
             Novo Chat
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-3 space-y-1">
-          <h3 className="text-xs font-semibold text-black/60 dark:text-white/60 uppercase tracking-wider mb-3 px-2 mt-2">
+          <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3 px-2 mt-2">
             Histórico
           </h3>
           {sessions.map((session) => (
@@ -166,48 +166,48 @@ export default function RecomendacoesPage() {
               key={session.id}
               onClick={() => setActiveSessionId(session.id)}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left",
+                "w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left font-medium",
                 activeSessionId === session.id
-                  ? "bg-brand-main/10 border border-brand-main/20 text-brand-main"
-                  : "hover:bg-black/5 dark:hover:bg-white/5 border border-transparent text-black/70 dark:text-white/70 hover:text-black dark:hover:text-white"
+                  ? "bg-brand-main/10 border-2 border-brand-main/30 text-brand-main font-bold"
+                  : "hover:bg-slate-100 border-2 border-transparent text-slate-700 hover:text-slate-900"
               )}
             >
-              <MessageSquare className="w-4 h-4 shrink-0" />
+              <MessageSquare className="w-4 h-4 shrink-0 text-slate-500" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{session.title}</p>
-                <p className="text-[10px] opacity-60 truncate">
+                <p className="text-sm font-semibold truncate">{session.title}</p>
+                <p className="text-[10px] text-slate-500 truncate">
                   {new Date(session.updatedAt).toLocaleDateString("pt-BR")}
                 </p>
               </div>
             </button>
           ))}
           {sessions.length === 0 && (
-            <p className="text-xs text-black/30 dark:text-white/30 text-center py-4">Nenhum chat salvo.</p>
+            <p className="text-xs text-slate-500 font-medium text-center py-4">Nenhum chat salvo.</p>
           )}
         </div>
       </div>
 
       {/* Área Principal de Chat */}
-      <div className="flex-1 flex flex-col bg-white/50 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-2xl backdrop-blur-md overflow-hidden relative">
-        <div className="bg-black/5 dark:bg-white/5 border-b border-black/10 dark:border-white/10 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between z-10 gap-4">
+      <div className="flex-1 flex flex-col bg-white border-2 border-slate-200 rounded-2xl shadow-sm overflow-hidden relative">
+        <div className="bg-slate-50 border-b-2 border-slate-200 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between z-10 gap-4">
           <div className="flex items-center gap-3">
             <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-brand-main" />
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-black dark:text-white">Recomendações IA</h2>
-              <p className="text-xs sm:text-sm text-black/70 dark:text-white/60">Apoiado em Literaturas Oficiais</p>
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Recomendações IA</h2>
+              <p className="text-xs sm:text-sm text-slate-600 font-medium">Apoiado em Literaturas Oficiais</p>
             </div>
           </div>
           
-          <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-xl overflow-x-auto">
+          <div className="flex items-center gap-1 bg-white border-2 border-slate-200 p-1 rounded-xl overflow-x-auto shadow-sm">
             {(["GERAL", "MG", "GO", "MS"] as RegionType[]).map((r) => (
               <button
                 key={r}
                 onClick={() => { setRegion(r); handleNewChat(); }}
                 className={cn(
-                  "px-4 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap",
+                  "px-4 py-1.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap",
                   region === r 
-                    ? "bg-white dark:bg-black text-brand-accent shadow-sm" 
-                    : "text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white hover:bg-white/50 dark:hover:bg-white/10"
+                    ? "bg-slate-900 text-white shadow-sm" 
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                 )}
               >
                 {r}
@@ -216,9 +216,9 @@ export default function RecomendacoesPage() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-slate-50/50">
           {isLoadingHistory ? (
-            <div className="flex items-center justify-center h-full text-black/50 dark:text-white/50">
+            <div className="flex items-center justify-center h-full text-slate-500">
               <Loader2 className="w-8 h-8 animate-spin text-brand-main" />
             </div>
           ) : (
@@ -235,7 +235,7 @@ export default function RecomendacoesPage() {
                     className={cn(
                       "shrink-0",
                       msg.role === "user"
-                        ? "w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center bg-black/10 dark:bg-white/10"
+                        ? "w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center bg-slate-200 text-slate-800 border border-slate-300 font-bold"
                         : "flex items-center justify-center"
                     )}
                   >
@@ -247,10 +247,10 @@ export default function RecomendacoesPage() {
                   </div>
                   <div
                     className={cn(
-                      "p-3 sm:p-4 rounded-2xl text-sm sm:text-base leading-relaxed shadow-sm whitespace-pre-wrap",
+                      "p-3.5 sm:p-4 rounded-2xl text-sm sm:text-base leading-relaxed shadow-sm whitespace-pre-wrap font-medium",
                       msg.role === "user"
-                        ? "bg-brand-main text-white font-medium rounded-tr-none"
-                        : "bg-black/5 dark:bg-white/5 text-black/90 dark:text-white/90 border border-black/10 dark:border-white/10 rounded-tl-none"
+                        ? "bg-brand-main text-white font-semibold rounded-tr-none"
+                        : "bg-white text-slate-900 border-2 border-slate-200 rounded-tl-none"
                     )}
                   >
                     {msg.text}
@@ -262,10 +262,10 @@ export default function RecomendacoesPage() {
                   <div className="flex items-center justify-center shrink-0">
                     <FiggerMascot className="w-10 h-10 sm:w-14 sm:h-14 drop-shadow-md" isThinking={true} />
                   </div>
-                  <div className="p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-tl-none flex gap-1 items-center">
-                    <div className="w-2 h-2 bg-brand-main/50 rounded-full animate-bounce" />
-                    <div className="w-2 h-2 bg-brand-main/50 rounded-full animate-bounce [animation-delay:0.2s]" />
-                    <div className="w-2 h-2 bg-brand-main/50 rounded-full animate-bounce [animation-delay:0.4s]" />
+                  <div className="p-4 rounded-2xl bg-white border-2 border-slate-200 rounded-tl-none flex gap-1 items-center shadow-sm">
+                    <div className="w-2 h-2 bg-brand-main rounded-full animate-bounce" />
+                    <div className="w-2 h-2 bg-brand-main rounded-full animate-bounce [animation-delay:0.2s]" />
+                    <div className="w-2 h-2 bg-brand-main rounded-full animate-bounce [animation-delay:0.4s]" />
                   </div>
                 </div>
               )}
@@ -274,12 +274,12 @@ export default function RecomendacoesPage() {
           )}
         </div>
 
-        <div className="p-3 sm:p-5 border-t border-black/10 dark:border-white/10 bg-white/60 dark:bg-black/60 shrink-0">
+        <div className="p-3 sm:p-5 border-t-2 border-slate-200 bg-white shrink-0">
           <div className="relative max-w-4xl mx-auto">
             <input
               type="text"
               placeholder="Ex: Qual a recomendação de N para milho em sequeiro?"
-              className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl py-3 sm:py-4 pl-4 sm:pl-5 pr-14 text-black dark:text-white placeholder:text-black/40 dark:placeholder:text-white/40 focus:outline-none focus:border-brand-main/50 transition-colors text-sm sm:text-base"
+              className="w-full !bg-white border-2 border-slate-300 rounded-xl py-3 sm:py-4 pl-4 sm:pl-5 pr-14 !text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-main transition-colors text-sm sm:text-base font-semibold shadow-sm"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => {
@@ -290,7 +290,7 @@ export default function RecomendacoesPage() {
             <button
               onClick={handleSendQuery}
               disabled={isTyping || isLoadingHistory || !query.trim()}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 sm:p-2.5 rounded-lg bg-brand-main text-black hover:bg-brand-main/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-2 sm:p-2.5 rounded-lg bg-brand-main text-white hover:bg-brand-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
             >
               <Send className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>

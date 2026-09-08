@@ -1,9 +1,8 @@
 @import "tailwindcss";
-@custom-variant dark (&:is(.dark *));
 
 @theme {
   --color-brand-light: #93C63E;
-  --color-brand-main: #4A8B28; /* Verde mais escuro para maior contraste no fundo branco */
+  --color-brand-main: #4A8B28; /* Verde com alto contraste no fundo branco */
   --color-brand-accent: #F99D1C;
   --color-brand-dark: #3A1A1A;
 
@@ -42,23 +41,6 @@
   --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
 }
 
-@theme dark {
-  --color-brand-main: #6BAF3A; /* Mantém o verde brilhante no modo escuro */
-  --color-primary: #6BAF3A;
-  --color-ring: #6BAF3A;
-  --color-background: #000000;
-  --color-foreground: #ffffff;
-  --color-card: #09090b;
-  --color-card-foreground: #ffffff;
-  --color-popover: #09090b;
-  --color-popover-foreground: #ffffff;
-  --color-secondary: #27272a;
-  --color-secondary-foreground: #fafafa;
-  --color-muted: #27272a;
-  --color-muted-foreground: #a1a1aa;
-  --color-border: #27272a;
-  --color-input: #27272a;
-}
 
 @layer base {
   * {
@@ -68,6 +50,15 @@
   body {
     @apply bg-background text-foreground transition-colors duration-300;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  select,
+  textarea {
+    background-color: #ffffff;
+    color: #0f172a;
   }
 }
 

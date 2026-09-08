@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import Image from "next/image";
 import { Camera, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface AvatarUploadProps {
   value: string;
@@ -34,7 +35,7 @@ export function AvatarUpload({ value, onChange, nameFallback = "U", size = "md" 
       onChange(base64);
     } catch (error) {
       console.error("Erro ao processar imagem", error);
-      alert("Não foi possível carregar esta imagem. Tente outra.");
+      toast.error("Não foi possível carregar esta imagem. Tente outra.");
     } finally {
       setIsProcessing(false);
       // Reset input so the same file can be selected again if needed

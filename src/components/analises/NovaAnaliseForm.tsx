@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ArrowLeft, Sparkles, Loader2, Save, MapPin } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export type FieldOption = {
   id: string;
@@ -97,11 +98,12 @@ export default function NovaAnaliseForm({ fields }: { fields: FieldOption[] }) {
           },
         });
         setTextInput(""); // Limpa após sucesso
+        toast.success("Dados da análise extraídos com sucesso pela IA!");
       } else {
-        alert("Erro da IA: " + (data.error || "não foi possível processar."));
+        toast.error("Erro da IA: " + (data.error || "não foi possível processar."));
       }
     } catch {
-      alert("Erro ao processar com IA.");
+      toast.error("Erro ao processar com IA.");
     } finally {
       setIsLoading(false);
     }
@@ -158,36 +160,33 @@ export default function NovaAnaliseForm({ fields }: { fields: FieldOption[] }) {
   return (
     <div className="max-w-5xl mx-auto pb-12 flex flex-col">
       <header className="mb-8">
-        <Link href="/dashboard/analises" className="inline-flex items-center gap-2 text-white/50 hover:text-white transition-colors mb-4 text-sm">
+        <Link href="/dashboard/analises" className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors mb-4 text-sm font-semibold">
           <ArrowLeft className="w-4 h-4" /> Voltar para Planilha
         </Link>
-        <h1 className="text-3xl font-semibold mb-2">Nova Análise de Solo</h1>
-        <p className="text-white/60">Digite manualmente ou cole o laudo para a IA preencher tudo magicamente.</p>
+        <h1 className="text-3xl font-bold mb-2 text-slate-900">Nova Análise de Solo</h1>
+        <p className="text-slate-600 font-medium">Digite manualmente ou cole o laudo para a IA preencher tudo magicamente.</p>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* IA Assistant Panel */}
         <div className="lg:col-span-1 space-y-6">
-          <div className="bg-brand-main/10 border border-brand-main/30 rounded-3xl p-6 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-4 opacity-50">
-              <Sparkles className="w-24 h-24 text-brand-main blur-xl group-hover:blur-2xl transition-all duration-700" />
-            </div>
-            <h2 className="text-xl font-medium text-brand-main flex items-center gap-2 mb-4 relative z-10">
-              <Sparkles className="w-5 h-5" /> Preenchimento Mágico
+          <div className="bg-white border-2 border-slate-200 rounded-3xl p-6 shadow-md">
+            <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2 mb-4">
+              <Sparkles className="w-5 h-5 text-brand-main" /> Preenchimento Mágico
             </h2>
-            <p className="text-sm text-white/70 mb-4 relative z-10">
+            <p className="text-sm text-slate-600 mb-4 font-medium leading-relaxed">
               Copie o texto do PDF do laudo do laboratório ou anotações de campo e cole aqui. A Inteligência Artificial vai extrair todos os dados para você.
             </p>
             <textarea
               value={textInput}
               onChange={(e) => setTextInput(e.target.value)}
               placeholder="Ex: Amostra 1. pH 5.5, Fósforo 12 mg, K 0.2..."
-              className="w-full h-40 bg-black/40 border border-white/10 rounded-xl p-4 text-sm text-white placeholder-white/30 focus:outline-none focus:border-brand-main resize-none relative z-10 mb-4"
+              className="w-full h-40 !bg-white border-2 border-slate-300 rounded-xl p-4 text-sm !text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-main resize-none mb-4 shadow-sm font-medium"
             />
             <button
               onClick={handleAIParse}
               disabled={isLoading || !textInput.trim()}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand-main hover:bg-brand-light disabled:bg-white/10 disabled:text-white/30 text-white font-medium rounded-xl transition-all shadow-[0_0_20px_rgba(107,175,58,0.3)] disabled:shadow-none relative z-10"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand-main hover:bg-brand-light disabled:bg-slate-200 disabled:text-slate-400 text-white font-semibold rounded-xl transition-all shadow-md"
             >
               {isLoading ? (
                 <><Loader2 className="w-5 h-5 animate-spin" /> Analisando...</>
@@ -200,16 +199,16 @@ export default function NovaAnaliseForm({ fields }: { fields: FieldOption[] }) {
 
         {/* Form Panel */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white/5 border border-white/10 rounded-3xl p-8 shadow-xl">
+          <div className="bg-white border-2 border-slate-200 rounded-3xl p-8 shadow-xl">
             {/* Seleção de Talhão */}
             <section className="mb-10">
-              <h3 className="text-lg font-medium text-white mb-6 border-b border-white/10 pb-2">Talhão</h3>
+              <h3 className="text-lg font-bold text-slate-900 mb-6 border-b-2 border-slate-200 pb-2">Talhão</h3>
               {fields.length === 0 ? (
-                <div className="p-4 rounded-xl bg-brand-accent/10 border border-brand-accent/30 text-sm text-white/80 flex items-center gap-3">
-                  <MapPin className="w-5 h-5 text-brand-accent shrink-0" />
+                <div className="p-4 rounded-xl bg-amber-50 border-2 border-amber-200 text-sm text-amber-900 flex items-center gap-3">
+                  <MapPin className="w-5 h-5 text-amber-600 shrink-0" />
                   <span>
                     Nenhum talhão cadastrado ainda.{" "}
-                    <Link href="/dashboard/propriedades" className="text-brand-accent underline font-medium">
+                    <Link href="/dashboard/propriedades" className="text-amber-700 underline font-bold">
                       Cadastre uma fazenda e um talhão
                     </Link>{" "}
                     antes de salvar a análise.
@@ -219,11 +218,11 @@ export default function NovaAnaliseForm({ fields }: { fields: FieldOption[] }) {
                 <select
                   value={fieldId}
                   onChange={(e) => setFieldId(e.target.value)}
-                  className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:border-brand-main"
+                  className="w-full !bg-white border-2 border-slate-300 rounded-xl px-4 py-3 !text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-main shadow-sm font-semibold"
                 >
-                  <option value="">Selecione o talhão...</option>
+                  <option value="" className="!bg-white !text-slate-900">Selecione o talhão...</option>
                   {fields.map((f) => (
-                    <option key={f.id} value={f.id}>
+                    <option key={f.id} value={f.id} className="!bg-white !text-slate-900">
                       {f.propertyName} — {f.name} ({f.city}/{f.state}){f.crop ? ` • ${f.crop}` : ""}
                     </option>
                   ))}
@@ -232,39 +231,39 @@ export default function NovaAnaliseForm({ fields }: { fields: FieldOption[] }) {
             </section>
 
             <section className="mb-10">
-              <h3 className="text-lg font-medium text-white mb-6 border-b border-white/10 pb-2">Dados Iniciais</h3>
+              <h3 className="text-lg font-bold text-slate-900 mb-6 border-b-2 border-slate-200 pb-2">Dados Iniciais</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-white/50 mb-1 uppercase tracking-wider">Data da Coleta</label>
-                  <input type="date" value={formData.dadosIniciais.data} onChange={(e) => handleChange("dadosIniciais", "data", e.target.value)} className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-2 text-white focus:border-brand-main" />
+                  <label className="block text-xs font-bold text-slate-800 mb-1.5 uppercase tracking-wider">Data da Coleta</label>
+                  <input type="date" value={formData.dadosIniciais.data} onChange={(e) => handleChange("dadosIniciais", "data", e.target.value)} className="w-full !bg-white border-2 border-slate-300 rounded-xl px-4 py-2.5 !text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-main shadow-sm font-semibold" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-white/50 mb-1 uppercase tracking-wider">Profundidade</label>
-                  <input type="text" value={formData.dadosIniciais.profundidade} onChange={(e) => handleChange("dadosIniciais", "profundidade", e.target.value)} className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-2 text-white focus:border-brand-main" />
+                  <label className="block text-xs font-bold text-slate-800 mb-1.5 uppercase tracking-wider">Profundidade</label>
+                  <input type="text" value={formData.dadosIniciais.profundidade} onChange={(e) => handleChange("dadosIniciais", "profundidade", e.target.value)} className="w-full !bg-white border-2 border-slate-300 rounded-xl px-4 py-2.5 !text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-main shadow-sm font-semibold" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-white/50 mb-1 uppercase tracking-wider">Cultura Anterior</label>
-                  <input type="text" value={formData.dadosIniciais.culturaAnterior} onChange={(e) => handleChange("dadosIniciais", "culturaAnterior", e.target.value)} className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-2 text-white focus:border-brand-main" />
+                  <label className="block text-xs font-bold text-slate-800 mb-1.5 uppercase tracking-wider">Cultura Anterior</label>
+                  <input type="text" value={formData.dadosIniciais.culturaAnterior} onChange={(e) => handleChange("dadosIniciais", "culturaAnterior", e.target.value)} className="w-full !bg-white border-2 border-slate-300 rounded-xl px-4 py-2.5 !text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-main shadow-sm font-semibold" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-white/50 mb-1 uppercase tracking-wider">Cultura Desejada</label>
-                  <input type="text" value={formData.dadosIniciais.culturaDesejada} onChange={(e) => handleChange("dadosIniciais", "culturaDesejada", e.target.value)} className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-2 text-white focus:border-brand-main" />
+                  <label className="block text-xs font-bold text-slate-800 mb-1.5 uppercase tracking-wider">Cultura Desejada</label>
+                  <input type="text" value={formData.dadosIniciais.culturaDesejada} onChange={(e) => handleChange("dadosIniciais", "culturaDesejada", e.target.value)} className="w-full !bg-white border-2 border-slate-300 rounded-xl px-4 py-2.5 !text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-main shadow-sm font-semibold" />
                 </div>
               </div>
             </section>
 
             <section className="mb-10">
-              <h3 className="text-lg font-medium text-white mb-6 border-b border-white/10 pb-2">Parâmetros Químicos</h3>
+              <h3 className="text-lg font-bold text-slate-900 mb-6 border-b-2 border-slate-200 pb-2">Parâmetros Químicos</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {Object.keys(formData.parametrosQuimicos).map((key) => (
                   <div key={key}>
-                    <label className="block text-xs font-medium text-white/50 mb-1 uppercase tracking-wider">{key.replace("_percent", "%")}</label>
+                    <label className="block text-xs font-bold text-slate-800 mb-1.5 uppercase tracking-wider">{key.replace("_percent", "%")}</label>
                     <input
                       type="number"
                       step="0.01"
                       value={formData.parametrosQuimicos[key as keyof ChemicalData]}
                       onChange={(e) => handleChange("parametrosQuimicos", key, e.target.value)}
-                      className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-2 text-white focus:border-brand-main font-mono"
+                      className="w-full !bg-white border-2 border-slate-300 rounded-xl px-4 py-2.5 !text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-main shadow-sm font-mono font-semibold"
                     />
                   </div>
                 ))}
@@ -272,33 +271,33 @@ export default function NovaAnaliseForm({ fields }: { fields: FieldOption[] }) {
             </section>
 
             <section className="mb-8">
-              <h3 className="text-lg font-medium text-white mb-6 border-b border-white/10 pb-2">Características Físicas (%)</h3>
+              <h3 className="text-lg font-bold text-slate-900 mb-6 border-b-2 border-slate-200 pb-2">Características Físicas (%)</h3>
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-white/50 mb-1 uppercase tracking-wider">Argila</label>
-                  <input type="number" value={formData.parametrosFisicos.argila} onChange={(e) => handleChange("parametrosFisicos", "argila", e.target.value)} className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-2 text-white focus:border-brand-main font-mono" />
+                  <label className="block text-xs font-bold text-slate-800 mb-1.5 uppercase tracking-wider">Argila</label>
+                  <input type="number" value={formData.parametrosFisicos.argila} onChange={(e) => handleChange("parametrosFisicos", "argila", e.target.value)} className="w-full !bg-white border-2 border-slate-300 rounded-xl px-4 py-2.5 !text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-main shadow-sm font-mono font-semibold" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-white/50 mb-1 uppercase tracking-wider">Silte</label>
-                  <input type="number" value={formData.parametrosFisicos.silte} onChange={(e) => handleChange("parametrosFisicos", "silte", e.target.value)} className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-2 text-white focus:border-brand-main font-mono" />
+                  <label className="block text-xs font-bold text-slate-800 mb-1.5 uppercase tracking-wider">Silte</label>
+                  <input type="number" value={formData.parametrosFisicos.silte} onChange={(e) => handleChange("parametrosFisicos", "silte", e.target.value)} className="w-full !bg-white border-2 border-slate-300 rounded-xl px-4 py-2.5 !text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-main shadow-sm font-mono font-semibold" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-white/50 mb-1 uppercase tracking-wider">Areia</label>
-                  <input type="number" value={formData.parametrosFisicos.areia} onChange={(e) => handleChange("parametrosFisicos", "areia", e.target.value)} className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-2 text-white focus:border-brand-main font-mono" />
+                  <label className="block text-xs font-bold text-slate-800 mb-1.5 uppercase tracking-wider">Areia</label>
+                  <input type="number" value={formData.parametrosFisicos.areia} onChange={(e) => handleChange("parametrosFisicos", "areia", e.target.value)} className="w-full !bg-white border-2 border-slate-300 rounded-xl px-4 py-2.5 !text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-main shadow-sm font-mono font-semibold" />
                 </div>
               </div>
             </section>
 
-            <div className="pt-6 mt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-end gap-4">
+            <div className="pt-6 mt-6 border-t-2 border-slate-200 flex flex-col sm:flex-row items-center justify-end gap-4">
               {saveError && (
-                <p className="text-sm text-destructive-foreground bg-destructive/20 border border-destructive/50 rounded-lg px-4 py-2 flex-1 text-center sm:text-left">
+                <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2 flex-1 text-center sm:text-left font-medium">
                   {saveError}
                 </p>
               )}
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="flex items-center gap-2 px-8 py-3 bg-white text-black hover:bg-white/90 disabled:opacity-70 font-medium rounded-xl transition-all"
+                className="flex items-center gap-2 px-8 py-3 bg-brand-main hover:bg-brand-light text-white disabled:opacity-70 font-semibold rounded-xl transition-all shadow-md"
               >
                 {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
                 {isSaving ? "Salvando..." : "Salvar Análise"}

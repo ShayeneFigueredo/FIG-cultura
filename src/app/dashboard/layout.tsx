@@ -22,7 +22,7 @@ export default async function DashboardLayout({
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black text-black dark:text-white flex transition-colors duration-300">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex">
       <Sidebar
         user={{
           name: dbUser?.name ?? session.user.name ?? "Usuário",
@@ -31,7 +31,6 @@ export default async function DashboardLayout({
         }}
       />
       <main className="flex-1 min-w-0 lg:ml-64 min-h-screen relative flex flex-col">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-brand-main/5 dark:from-brand-main/10 via-transparent dark:via-black to-transparent dark:to-black opacity-50 pointer-events-none" />
         <SettingsMenu />
         <div className="relative z-10 p-4 sm:p-8 flex-1 flex flex-col min-h-0 pt-16 sm:pt-8">
           {children}
