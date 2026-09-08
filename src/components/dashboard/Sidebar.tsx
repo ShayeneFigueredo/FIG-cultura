@@ -5,13 +5,19 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { LayoutDashboard, Map, Sprout, Calculator, LogOut, Menu, X, User, BookOpen } from "lucide-react";
+import { LayoutDashboard, Map, Sprout, Calculator, LogOut, Menu, X, User, BookOpen, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type SidebarUser = {
   name: string;
   email: string;
   avatarUrl?: string | null;
+};
+
+type SidebarSubscription = {
+  status: string;
+  endsAt: string | null;
+  createdAt: string;
 };
 
 const NAV_ITEMS = [
@@ -22,6 +28,7 @@ const NAV_ITEMS = [
 ];
 
 const SECONDARY_NAV_ITEMS = [
+  { href: "/dashboard/assinatura", label: "Assinatura PRO", icon: CreditCard },
   { href: "/dashboard/perfil", label: "Meu Perfil", icon: User },
 ];
 
@@ -34,9 +41,26 @@ function getInitials(name: string) {
   return initials || "U";
 }
 
-export function Sidebar({ user }: { user: SidebarUser }) {
+export function Sidebar({ user, subscription }: { user: SidebarUser; subscription?: SidebarSubscription }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+
+  const isPro = subscription?.status === "ACTIVE";
+  let trialDaysLeft = 0;
+  let isTrialExpired = false;
+
+  if (!isPro && subscription) {
+    const now = new Date();
+    let endsAt: Date;
+    if (subscription.endsAt) {
+      endsAt = new Date(subscription.endsAt);
+    } else {
+      const created = new Date(subscription.createdAt);
+      endsAt = new Date(created.getTime() + 7 * 24 * 60 * 60 * 1000);
+    }
+    trialDaysLeft = Math.max(0, Math.ceil((endsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+    isTrialExpired = now > endsAt;
+  }
 
   const isActive = (href: string) =>
     href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(href);
@@ -157,7 +181,26 @@ export function Sidebar({ user }: { user: SidebarUser }) {
           </Link>
         </nav>
 
-        <div className="p-4 border-t border-white/10">
+        <div className="p-4 border-t border-white/10 space-y-3">
+          {/* Badge de Status da Assinatura */}
+          {subscription && (
+            <div className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs">
+              {isPro ? (
+                <div className="flex items-center justify-between text-emerald-400 font-bold">
+                  <span>Plano PRO</span>
+                  <span className="bg-emerald-500/20 px-2 py-0.5 rounded-full text-[10px] uppercase">Ativo</span>
+                </div>
+              ) : (
+                <Link href="/dashboard/assinatura" className="block text-amber-300 font-bold hover:underline">
+                  <div className="flex items-center justify-between">
+                    <span>Sem Assinatura</span>
+                    <span className="bg-amber-500/20 px-2 py-0.5 rounded-full text-[10px] uppercase">Assinar</span>
+                  </div>
+                </Link>
+              )}
+            </div>
+          )}
+
           <div className="flex items-center gap-3 px-3 py-2 text-sm text-white/60 mb-2">
             <div className="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white font-bold shrink-0 overflow-hidden relative">
               {user.avatarUrl ? (

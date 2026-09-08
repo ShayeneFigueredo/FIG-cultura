@@ -101,8 +101,11 @@ export default function CadastroPage() {
           className="w-full max-w-sm my-auto"
         >
           <div className="mb-8 text-center lg:text-left">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-main/20 text-brand-main border border-brand-main/30 text-xs font-bold uppercase tracking-wider mb-3">
+              ⚡ Teste Grátis • Plano PRO R$ 99,90/mês
+            </div>
             <h2 className="text-3xl font-semibold tracking-tight mb-2 text-white">Criar conta</h2>
-            <p className="text-white/60 text-sm">Preencha seus dados para começar a usar a Cultiva.</p>
+            <p className="text-white/60 text-sm">Crie sua conta para testar o sistema e ativar o Plano PRO.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">

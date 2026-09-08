@@ -3,6 +3,38 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ message: "Não autorizado." }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        avatarUrl: true,
+        subscriptionStatus: true,
+        subscriptionEndsAt: true,
+        createdAt: true,
+      },
+    });
+
+    if (!user) {
+      return NextResponse.json({ message: "Usuário não encontrado." }, { status: 404 });
+    }
+
+    return NextResponse.json(user, { status: 200 });
+  } catch (error) {
+    console.error("Profile GET error:", error);
+    return NextResponse.json({ message: "Erro interno no servidor." }, { status: 500 });
+  }
+}
+
 export async function PUT(req: Request) {
   try {
     const session = await getServerSession(authOptions);
