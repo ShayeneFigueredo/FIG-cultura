@@ -11,17 +11,21 @@ export async function POST(req: Request) {
 
     const genAI = new GoogleGenerativeAI(apiKey);
 
-    const { text } = await req.json();
+    const { text, fileBase64, mimeType } = await req.json();
 
-    if (!text) {
-      return NextResponse.json({ error: "No text provided" }, { status: 400 });
+    if (!text && !fileBase64) {
+      return NextResponse.json({ error: "Nenhum arquivo ou texto foi fornecido para análise." }, { status: 400 });
     }
 
-    const systemInstruction = `Você é um Agrônomo Especialista e Analista de Dados altamente treinado.
-Sua tarefa é ler um texto (laudo de análise de solo, anotações de campo, pdf colado) e extrair os dados estruturados em formato JSON estrito.
-Extraia as seguintes informações se disponíveis, caso não encontre algo retorne null.
-Use seu conhecimento agronômico para interpretar unidades. O potássio (K) pode vir em mg/dm³ ou cmolc/dm³. Transforme vírgulas decimais em pontos decimais no output numérico.
-Se o produtor informar "vou plantar soja", coloque "soja" em culturaDesejada.`;
+    const systemInstruction = `Você é um Agrônomo Especialista e Extrator de Dados de Laudos Agrícolas com precisão cirúrgica.
+Sua tarefa é analisar o laudo de solo fornecido (em documento PDF, imagem de tabela ou texto) e extrair EXATAMENTE os parâmetros laboratoriais numéricos e cadastrais encontrados.
+
+REGRAS CRÍTICAS DE PREENCHIMENTO E PRECISÃO:
+1. NUNCA invente, infira ou preencha valores aleatórios ou simulados.
+2. Se um parâmetro químico ou físico (pH, P, K, Ca, Mg, Argila, Silte, Areia, V%, CTC, etc.) NÃO estiver explicitamente presente no laudo, retorne null para aquele campo. Deixe-o rigorosamente em branco.
+3. Se a informação sobre data da coleta, profundidade, cultura anterior ou cultura desejada não constar no laudo, retorne null.
+4. Transcreva os valores numéricos com precisão decimal exata. Substitua vírgula por ponto (ex: 5,4 -> 5.4).
+5. Interprete unidades agronômicas (mg/dm³, cmolc/dm³, g/kg, %, etc.) e converta se necessário para os padrões normais de interpretação.`;
 
     const schema: Schema = {
       type: SchemaType.OBJECT,
@@ -61,22 +65,39 @@ Se o produtor informar "vou plantar soja", coloque "soja" em culturaDesejada.`;
       }
     };
 
-    // Use gemini-3.6-flash as instructed by the API
     const model = genAI.getGenerativeModel({ 
       model: "gemini-3.6-flash",
       systemInstruction,
       generationConfig: {
         responseMimeType: "application/json",
         responseSchema: schema,
-        temperature: 0.1,
+        temperature: 0.0,
       }
     });
 
-    const response = await model.generateContent(`Analise este texto:\n\n${text}`);
+    const parts: any[] = [];
+
+    if (fileBase64 && mimeType) {
+      const cleanBase64 = fileBase64.includes(",") ? fileBase64.split(",")[1] : fileBase64;
+      parts.push({
+        inlineData: {
+          data: cleanBase64,
+          mimeType: mimeType,
+        },
+      });
+    }
+
+    if (text) {
+      parts.push({ text: `Texto/Anotações adicionais da análise:\n${text}` });
+    } else {
+      parts.push({ text: "Analise o laudo de solo em anexo e extraia rigorosamente todos os parâmetros encontrados." });
+    }
+
+    const response = await model.generateContent(parts);
     const resultText = response.response.text();
     
     if (!resultText) {
-      throw new Error("Empty response from Gemini");
+      throw new Error("Resposta vazia da IA.");
     }
 
     const jsonResult = JSON.parse(resultText);
@@ -85,7 +106,7 @@ Se o produtor informar "vou plantar soja", coloque "soja" em culturaDesejada.`;
   } catch (error) {
     console.error("Error parsing soil analysis with AI:", error);
     return NextResponse.json(
-      { error: "Failed to parse analysis", details: error instanceof Error ? error.message : String(error) },
+      { error: "Falha ao processar análise com IA", details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }

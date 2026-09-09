@@ -67,7 +67,8 @@ export async function generateAndPersistAnalysisPlanning(analysisId: string) {
   const kLevel = AgronomicEngine.interpretNutrient("K", k);
 
   // Cálculos agronômicos do motor
-  const limingTonPerHa = AgronomicEngine.calculateLiming(ctc, vPercent, cropKey, 100);
+  const limingTonPerHa = AgronomicEngine.calculateLiming(ctc, vPercent, cropKey, 100, ph);
+  const sulfurKgHa = AgronomicEngine.calculateAcidification(ph);
   const npkNeeds = AgronomicEngine.calculateNPK(cropKey, yieldTon, pLevel, kLevel);
   const strategyItems = FertilizerCalculator.generateBasicStrategy(npkNeeds);
 
@@ -83,6 +84,7 @@ export async function generateAndPersistAnalysisPlanning(analysisId: string) {
         { soilAnalysisId: analysisId, nutrient: "P2O5", recommendedDose: npkNeeds.P2O5 },
         { soilAnalysisId: analysisId, nutrient: "K2O", recommendedDose: npkNeeds.K2O },
         { soilAnalysisId: analysisId, nutrient: "Calcario", recommendedDose: limingTonPerHa },
+        { soilAnalysisId: analysisId, nutrient: "EnxofreElementar", recommendedDose: sulfurKgHa },
       ],
     }),
 

@@ -4,7 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import NovaAnaliseForm, { type FieldOption } from "@/components/analises/NovaAnaliseForm";
 
-export default async function NovaAnalisePage() {
+export default async function NovaAnalisePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ fieldId?: string }>;
+}) {
+  const { fieldId } = await searchParams;
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     redirect("/");
@@ -27,5 +32,5 @@ export default async function NovaAnalisePage() {
     state: f.property.state,
   }));
 
-  return <NovaAnaliseForm fields={fieldOptions} />;
+  return <NovaAnaliseForm fields={fieldOptions} defaultFieldId={fieldId} />;
 }

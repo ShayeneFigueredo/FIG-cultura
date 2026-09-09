@@ -36,8 +36,16 @@ export interface GridAnalysis {
   sistemaCultivo: string | null;
   observacoes: string | null;
   field: {
+    id?: string;
     name: string;
-    property: { name: string };
+    crop?: string | null;
+    area?: number;
+    property?: {
+      id?: string;
+      name: string;
+      city?: string;
+      state?: string;
+    };
   } | null;
   parameters: GridParameter[];
   physicalChars: { argila: number | null } | null;

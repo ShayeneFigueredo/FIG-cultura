@@ -277,30 +277,49 @@ export default function PlanejamentoSafraPage() {
         {activeTab === "correcao" && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div>
-              <h2 className="text-xl font-bold text-slate-900 mb-1">Necessidade de Calagem</h2>
-              <p className="text-slate-600 text-sm font-medium">Cálculo baseado no método de elevação da saturação por bases.</p>
+              <h2 className="text-xl font-bold text-slate-900 mb-1">Correção do Solo & Calagem / Acidificação</h2>
+              <p className="text-slate-600 text-sm font-medium">
+                Faixa de pH ideal para plantas: <strong className="text-slate-900 font-bold">5,5 a 6,5</strong>.
+              </p>
             </div>
 
-            <div className="bg-white border-2 border-slate-200 rounded-xl p-6 lg:p-10 text-center max-w-2xl mx-auto mt-8 shadow-sm">
-              {!data.liming.needed ? (
+            <div className="bg-white border-2 border-slate-200 rounded-2xl p-6 lg:p-10 text-center max-w-2xl mx-auto mt-8 shadow-sm">
+              {data.liming.isAlkaline || Number(data.diagnosis.pH.value) >= 6.8 ? (
+                <div className="space-y-4">
+                  <div className="w-16 h-16 bg-amber-100 text-amber-800 rounded-full flex items-center justify-center mx-auto mb-2 border-2 border-amber-300">
+                    <AlertTriangle className="w-8 h-8" />
+                  </div>
+                  <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-900 font-extrabold text-xs uppercase tracking-wider">
+                    Solo Alcalino (pH {data.diagnosis.pH.value})
+                  </span>
+                  <h3 className="text-2xl font-bold text-slate-900 mt-2">
+                    Acidificação com Enxofre Elementar (S⁰)
+                  </h3>
+                  <div className="text-5xl font-black text-amber-600 my-4 font-mono">
+                    {data.liming.sulfurKgHa || Math.round((Number(data.diagnosis.pH.value) - 6.0) * 400)} <span className="text-2xl text-slate-600 font-semibold font-sans">kg/ha</span>
+                  </div>
+                  <p className="text-slate-700 text-sm font-semibold max-w-md mx-auto leading-relaxed bg-amber-50 border border-amber-200 p-4 rounded-2xl text-left">
+                    ⚠️ <strong>ATENÇÃO AGRONÔMICA:</strong> O pH deste solo está elevado ({data.diagnosis.pH.value}). <strong>NÃO utilize Calcário</strong>, pois ele aumentaria ainda mais a alcalinidade. Utilize <strong>Enxofre Elementar (S⁰)</strong> para baixar o pH de volta para a faixa ideal (5,5 a 6,5).
+                  </p>
+                </div>
+              ) : !data.liming.needed ? (
                 <div className="space-y-4">
                   <div className="w-16 h-16 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto mb-2 border-2 border-emerald-300">
                     <CheckCircle2 className="w-8 h-8" />
                   </div>
-                  <h3 className="text-xl font-bold text-slate-900">Solo Corrigido</h3>
+                  <h3 className="text-xl font-bold text-slate-900">Solo Corrigido / pH Ideal</h3>
                   <p className="text-slate-600 text-sm font-medium">
-                    O nível de V% atual ({data.diagnosis.V.value}%) já está adequado ou superior ao exigido pela cultura (
-                    {data.crop}). Não há necessidade de calagem.
+                    O nível de V% atual ({data.diagnosis.V.value}%) e o pH ({data.diagnosis.pH.value}) já estão na faixa ideal (5,5 - 6,5) exigida pela cultura ({data.crop}). Não há necessidade de calagem.
                   </p>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <h3 className="text-xl font-bold text-slate-900">Aplicar Calcário</h3>
-                  <div className="text-5xl font-extrabold text-slate-900 my-6">
-                    {data.liming.tonPerHa} <span className="text-2xl text-slate-500 font-semibold">ton/ha</span>
+                  <h3 className="text-xl font-bold text-slate-900">Aplicar Calcário (Solo Ácido)</h3>
+                  <div className="text-5xl font-extrabold text-slate-900 my-6 font-mono">
+                    {data.liming.tonPerHa} <span className="text-2xl text-slate-500 font-semibold font-sans">ton/ha</span>
                   </div>
                   <p className="text-slate-600 text-sm font-medium">
-                    Considerando um calcário com PRNT de 100%. Se o PRNT for menor, a dose deve ser ajustada proporcionalmente.
+                    Considerando calcário com PRNT 100% para elevar o pH e a V% ao nível da cultura.
                   </p>
                 </div>
               )}

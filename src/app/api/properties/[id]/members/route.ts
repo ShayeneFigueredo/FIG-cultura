@@ -21,7 +21,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ message: "Propriedade não encontrada ou sem permissão." }, { status: 404 });
     }
 
-    const { emails, userId } = await req.json();
+    const { emails, userId, role = "AGRONOMIST" } = await req.json();
 
     if (userId) {
       // Adding a single user via ID
@@ -35,7 +35,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       if (existing) return NextResponse.json({ message: "Usuário já é membro da equipe." }, { status: 400 });
 
       await prisma.propertyMember.create({
-        data: { propertyId, userId, role: "MEMBER" }
+        data: { propertyId, userId, role }
       });
 
       return NextResponse.json({ message: "Membro adicionado com sucesso." });
@@ -67,7 +67,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
         if (!existing) {
           await prisma.propertyMember.create({
-            data: { propertyId, userId: user.id, role: "STUDENT" }
+            data: { propertyId, userId: user.id, role }
           });
           addedEmails.push(user.email);
         }
@@ -85,6 +85,41 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   } catch (error) {
     console.error("Property Member Add Error:", error);
     return NextResponse.json({ message: "Erro interno no servidor." }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id: propertyId } = await params;
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ message: "Não autorizado." }, { status: 401 });
+    }
+
+    const property = await prisma.property.findFirst({
+      where: { id: propertyId, userId: session.user.id }
+    });
+
+    if (!property) {
+      return NextResponse.json({ message: "Propriedade não encontrada ou sem permissão." }, { status: 404 });
+    }
+
+    const { userId, role } = await req.json();
+
+    if (!userId || !role) {
+      return NextResponse.json({ message: "Parâmetros 'userId' e 'role' são obrigatórios." }, { status: 400 });
+    }
+
+    const member = await prisma.propertyMember.update({
+      where: { propertyId_userId: { propertyId, userId } },
+      data: { role }
+    });
+
+    return NextResponse.json({ message: "Cargo atualizado com sucesso.", member });
+  } catch (error) {
+    console.error("Property Member Role Update Error:", error);
+    return NextResponse.json({ message: "Erro ao atualizar cargo do membro." }, { status: 500 });
   }
 }
 

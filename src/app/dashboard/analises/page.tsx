@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Plus, Database } from "lucide-react";
-import DataGrid from "@/components/analises/DataGrid";
+import AnalisesViewManager from "@/components/analises/AnalisesViewManager";
 import { ExportCsvButton } from "@/components/analises/ExportCsvButton";
 import type { GridAnalysis } from "@/components/analises/types";
 
@@ -51,7 +51,7 @@ export default async function AnalisesPage() {
       <header className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8 px-6 lg:px-12">
         <div>
           <h1 className="text-3xl font-bold mb-2 text-slate-900">Análises de Solo</h1>
-          <p className="text-slate-600 font-medium">Controle de fertilidade, diagnósticos e planejamento de safra.</p>
+          <p className="text-slate-600 font-medium">Controle de fertilidade, diagnósticos e planejamento de safra por área.</p>
         </div>
         <div className="flex gap-4">
           {analyses.length > 0 && <ExportCsvButton analyses={analyses as unknown as GridAnalysis[]} />}
@@ -73,8 +73,8 @@ export default async function AnalisesPage() {
           </Link>
         </div>
       ) : (
-        <div className="flex-1 w-full min-h-0 overflow-hidden px-6 lg:px-12 pb-12">
-          <DataGrid analyses={analyses as unknown as GridAnalysis[]} />
+        <div className="flex-1 w-full min-h-0 px-6 lg:px-12 pb-12">
+          <AnalisesViewManager analyses={analyses as unknown as GridAnalysis[]} />
         </div>
       )}
     </div>

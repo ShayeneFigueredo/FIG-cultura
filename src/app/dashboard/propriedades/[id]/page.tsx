@@ -211,9 +211,10 @@ export default async function PropriedadeDetalhes({ params }: { params: Promise<
               {property.fields.map((field) => {
                 const latest = field.soilAnalyses[0];
                 return (
-                  <div
+                  <Link
                     key={field.id}
-                    className="bg-white border-2 border-slate-200 p-6 rounded-3xl hover:border-brand-main transition-colors shadow-sm group flex flex-col justify-between"
+                    href={`/dashboard/propriedades/${property.id}/talhoes/${field.id}`}
+                    className="bg-white border-2 border-slate-200 p-6 rounded-3xl hover:border-brand-main hover:shadow-md transition-all shadow-sm group flex flex-col justify-between cursor-pointer"
                   >
                     <div>
                       <div className="flex items-center justify-between mb-2">
@@ -231,22 +232,15 @@ export default async function PropriedadeDetalhes({ params }: { params: Promise<
                       </div>
                     </div>
 
-                    {latest ? (
-                      <div className="pt-3 border-t-2 border-slate-100 flex items-center justify-between">
-                        <span className="text-xs text-slate-500 font-medium">Última análise realizada</span>
-                        <Link
-                          href={`/dashboard/analises/${latest.id}/planejamento`}
-                          className="text-xs font-bold text-brand-main hover:underline"
-                        >
-                          Ver Diagnóstico →
-                        </Link>
-                      </div>
-                    ) : (
-                      <div className="pt-3 border-t-2 border-slate-100 text-xs text-slate-400 italic">
-                        Sem análise cadastrada
-                      </div>
-                    )}
-                  </div>
+                    <div className="pt-3 border-t-2 border-slate-100 flex items-center justify-between">
+                      <span className="text-xs text-slate-500 font-medium">
+                        {latest ? `1 Análise Registrada` : 'Sem análise cadastrada'}
+                      </span>
+                      <span className="text-xs font-bold text-brand-main group-hover:translate-x-1 transition-transform flex items-center gap-1">
+                        Acessar Área →
+                      </span>
+                    </div>
+                  </Link>
                 );
               })}
             </div>

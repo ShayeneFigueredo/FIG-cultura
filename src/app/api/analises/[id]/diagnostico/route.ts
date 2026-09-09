@@ -100,11 +100,22 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       V: { value: vPercent.toFixed(1), level: AgronomicEngine.interpretNutrient("V%", vPercent) },
     };
 
-    // Calculate Liming
+    // Calculate Liming & Acidification
+    const isAlkaline = ph >= 6.8;
     const limingRec = analysis?.recommendations.find((r) => r.nutrient === "Calcario");
-    const limingTonPerHa = limingRec
+    const sulfurRec = analysis?.recommendations.find((r) => r.nutrient === "EnxofreElementar");
+
+    const limingTonPerHa = isAlkaline
+      ? 0
+      : limingRec
       ? limingRec.recommendedDose
-      : AgronomicEngine.calculateLiming(ctc, vPercent, cropKey, 100);
+      : AgronomicEngine.calculateLiming(ctc, vPercent, cropKey, 100, ph);
+
+    const sulfurKgHa = ph > 6.5
+      ? sulfurRec
+        ? sulfurRec.recommendedDose
+        : AgronomicEngine.calculateAcidification(ph)
+      : 0;
 
     // Calculate NPK Needs
     const nRec = analysis?.recommendations.find((r) => r.nutrient === "N")?.recommendedDose;
@@ -146,6 +157,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       liming: {
         needed: limingTonPerHa > 0,
         tonPerHa: limingTonPerHa,
+        isAlkaline,
+        sulfurKgHa,
       },
       requirements: npkNeeds,
       strategy,

@@ -73,9 +73,15 @@ export class AgronomicEngine {
     }
   }
 
-  // Calculates Liming Requirement (Necessidade de Calagem) based on Base Saturation method
-  // NC (t/ha) = (V2 - V1) * CTC / PRNT
-  static calculateLiming(ctc: number, vAtual: number, cropKey: string, prnt: number = 100): number {
+  // Calculates Liming Requirement (Necessidade de Calagem) or Soil Acidification
+  // - Soil pH ideal range: 5.5 to 6.5
+  // - Soil pH > 6.8 / 7.0 (Alkaline): DO NOT apply Calcário! Apply Elemental Sulfur (Enxofre Elementar Sº) to lower pH to 5.5 - 6.5.
+  // - Soil pH < 5.5 (Acid): Apply Calcário via Base Saturation method NC (t/ha) = (V2 - V1) * CTC / PRNT.
+  static calculateLiming(ctc: number, vAtual: number, cropKey: string, prnt: number = 100, ph?: number): number {
+    if (ph !== undefined && ph >= 6.8) {
+      return 0; // Solo alcalino não recebe calcário!
+    }
+
     const crop = CropDatabase[cropKey.toLowerCase()] || CropDatabase['outras'];
     const v2 = crop.targetVPercent;
     
@@ -83,6 +89,15 @@ export class AgronomicEngine {
 
     const nc = ((v2 - vAtual) * ctc) / prnt;
     return Math.max(0, parseFloat(nc.toFixed(2)));
+  }
+
+  // Calculates Soil Acidification (Enxofre Elementar Sº in kg/ha) when soil is alkaline (pH > 6.5)
+  static calculateAcidification(ph: number, targetPh: number = 6.0): number {
+    if (ph <= 6.5) return 0;
+    // Estimativa agronômica: ~ 400 kg/ha de Enxofre Elementar (Sº) por ponto de pH acima do ideal (6.0)
+    const deltaPh = ph - targetPh;
+    const sulfurKg = Math.round(deltaPh * 400);
+    return Math.max(0, sulfurKg);
   }
 
   // Calculates Fertilizer Requirement (Necessidade de Adubação) based on expected yield (sc/ha or ton/ha)

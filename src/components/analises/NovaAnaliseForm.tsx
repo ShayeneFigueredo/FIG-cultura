@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeft, Sparkles, Loader2, Save, MapPin } from "lucide-react";
+import { ArrowLeft, Sparkles, Loader2, Save, MapPin, Upload, FileText, X, Paperclip } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -48,25 +48,71 @@ const EMPTY_FORM: FormData = {
   },
 };
 
-export default function NovaAnaliseForm({ fields }: { fields: FieldOption[] }) {
+type AttachedFile = {
+  name: string;
+  size: number;
+  mimeType: string;
+  base64: string;
+};
+
+export default function NovaAnaliseForm({
+  fields,
+  defaultFieldId,
+}: {
+  fields: FieldOption[];
+  defaultFieldId?: string;
+}) {
   const router = useRouter();
   const [textInput, setTextInput] = useState("");
+  const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
 
-  const [fieldId, setFieldId] = useState(fields.length === 1 ? fields[0].id : "");
+  const [fieldId, setFieldId] = useState(
+    defaultFieldId || (fields.length === 1 ? fields[0].id : "")
+  );
   const [formData, setFormData] = useState<FormData>(EMPTY_FORM);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error("O arquivo deve ter no máximo 15MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = reader.result as string;
+      setAttachedFile({
+        name: file.name,
+        size: file.size,
+        mimeType: file.type || (file.name.endsWith(".pdf") ? "application/pdf" : "text/plain"),
+        base64,
+      });
+      toast.success(`Arquivo "${file.name}" anexado!`);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleAIParse = async () => {
-    if (!textInput.trim()) return;
+    if (!textInput.trim() && !attachedFile) {
+      toast.error("Anexe um laudo (PDF/Imagem) ou cole o texto do laudo.");
+      return;
+    }
 
     setIsLoading(true);
     try {
       const res = await fetch("/api/ai/parse-soil-analysis", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: textInput }),
+        body: JSON.stringify({
+          text: textInput,
+          fileBase64: attachedFile?.base64,
+          mimeType: attachedFile?.mimeType,
+        }),
       });
 
       const data = await res.json();
@@ -74,10 +120,10 @@ export default function NovaAnaliseForm({ fields }: { fields: FieldOption[] }) {
       if (res.ok) {
         setFormData({
           dadosIniciais: {
-            data: data.dadosIniciais?.data || formData.dadosIniciais.data,
-            profundidade: data.dadosIniciais?.profundidade || formData.dadosIniciais.profundidade,
-            culturaAnterior: data.dadosIniciais?.culturaAnterior || formData.dadosIniciais.culturaAnterior,
-            culturaDesejada: data.dadosIniciais?.culturaDesejada || formData.dadosIniciais.culturaDesejada,
+            data: data.dadosIniciais?.data || "",
+            profundidade: data.dadosIniciais?.profundidade || "0-20",
+            culturaAnterior: data.dadosIniciais?.culturaAnterior || "",
+            culturaDesejada: data.dadosIniciais?.culturaDesejada || "",
           },
           parametrosFisicos: {
             argila: toInput(data.parametrosFisicos?.argila),
@@ -97,13 +143,14 @@ export default function NovaAnaliseForm({ fields }: { fields: FieldOption[] }) {
             m_percent: toInput(data.parametrosQuimicos?.m_percent),
           },
         });
-        setTextInput(""); // Limpa após sucesso
-        toast.success("Dados da análise extraídos com sucesso pela IA!");
+        setTextInput("");
+        setAttachedFile(null);
+        toast.success("Laudo analisado com sucesso! Dados preenchidos sem invenções.");
       } else {
-        toast.error("Erro da IA: " + (data.error || "não foi possível processar."));
+        toast.error("Erro na leitura IA: " + (data.error || "Não foi possível extrair a tabela."));
       }
     } catch {
-      toast.error("Erro ao processar com IA.");
+      toast.error("Erro de comunicação ao processar laudo.");
     } finally {
       setIsLoading(false);
     }
@@ -164,7 +211,7 @@ export default function NovaAnaliseForm({ fields }: { fields: FieldOption[] }) {
           <ArrowLeft className="w-4 h-4" /> Voltar para Planilha
         </Link>
         <h1 className="text-3xl font-bold mb-2 text-slate-900">Nova Análise de Solo</h1>
-        <p className="text-slate-600 font-medium">Digite manualmente ou cole o laudo para a IA preencher tudo magicamente.</p>
+        <p className="text-slate-600 font-medium">Anexe o laudo do laboratório (PDF ou Imagem) para a IA extrair a tabela de fertilidade com exatidão.</p>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -175,23 +222,67 @@ export default function NovaAnaliseForm({ fields }: { fields: FieldOption[] }) {
               <Sparkles className="w-5 h-5 text-brand-main" /> Preenchimento Mágico
             </h2>
             <p className="text-sm text-slate-600 mb-4 font-medium leading-relaxed">
-              Copie o texto do PDF do laudo do laboratório ou anotações de campo e cole aqui. A Inteligência Artificial vai extrair todos os dados para você.
+              Como laudos de solo vêm em tabelas, anexe o PDF/imagem ou cole o texto. A IA extrairá os dados e deixará em branco qualquer campo ausente no laudo.
             </p>
-            <textarea
-              value={textInput}
-              onChange={(e) => setTextInput(e.target.value)}
-              placeholder="Ex: Amostra 1. pH 5.5, Fósforo 12 mg, K 0.2..."
-              className="w-full h-40 !bg-white border-2 border-slate-300 rounded-xl p-4 text-sm !text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-main resize-none mb-4 shadow-sm font-medium"
-            />
+
+            {/* Anexo de Arquivo */}
+            <div className="mb-4">
+              <label className="block text-xs font-bold text-slate-800 mb-1.5 uppercase tracking-wider">
+                Anexar Tabela / PDF do Laudo
+              </label>
+              {!attachedFile ? (
+                <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 hover:border-brand-main bg-slate-50 hover:bg-emerald-50/50 p-4 rounded-2xl cursor-pointer transition-colors text-center group">
+                  <Upload className="w-6 h-6 text-slate-400 group-hover:text-brand-main mb-1" />
+                  <span className="text-xs font-bold text-slate-700 group-hover:text-brand-main">
+                    Clique para selecionar PDF ou Imagem
+                  </span>
+                  <span className="text-[10px] text-slate-400 mt-0.5">PDF, PNG, JPG (até 15MB)</span>
+                  <input
+                    type="file"
+                    accept=".pdf,image/png,image/jpeg,image/webp,.txt,.csv"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                </label>
+              ) : (
+                <div className="bg-emerald-50 border border-emerald-300 rounded-2xl p-3 flex items-center justify-between text-xs font-medium text-emerald-900">
+                  <div className="flex items-center gap-2 overflow-hidden">
+                    <Paperclip className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span className="truncate font-bold">{attachedFile.name}</span>
+                  </div>
+                  <button
+                    onClick={() => setAttachedFile(null)}
+                    className="p-1 text-slate-400 hover:text-red-600 rounded-lg"
+                    title="Remover anexo"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Texto opcional */}
+            <div className="mb-4">
+              <label className="block text-xs font-bold text-slate-800 mb-1.5 uppercase tracking-wider">
+                Anotações / Texto Adicional (Opcional)
+              </label>
+              <textarea
+                value={textInput}
+                onChange={(e) => setTextInput(e.target.value)}
+                placeholder="Cole observações adicionais ou notas de campo..."
+                className="w-full h-28 !bg-white border-2 border-slate-300 rounded-xl p-3 text-xs !text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-main resize-none shadow-sm font-medium"
+              />
+            </div>
+
             <button
               onClick={handleAIParse}
-              disabled={isLoading || !textInput.trim()}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand-main hover:bg-brand-light disabled:bg-slate-200 disabled:text-slate-400 text-white font-semibold rounded-xl transition-all shadow-md"
+              disabled={isLoading || (!textInput.trim() && !attachedFile)}
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand-main hover:bg-brand-light disabled:bg-slate-200 disabled:text-slate-400 text-white font-semibold rounded-xl transition-all shadow-md active:scale-[0.98]"
             >
               {isLoading ? (
-                <><Loader2 className="w-5 h-5 animate-spin" /> Analisando...</>
+                <><Loader2 className="w-5 h-5 animate-spin" /> Analisando Tabela...</>
               ) : (
-                <><Sparkles className="w-5 h-5" /> Preencher com IA</>
+                <><Sparkles className="w-5 h-5" /> Extrair Tabela com IA</>
               )}
             </button>
           </div>
@@ -263,6 +354,7 @@ export default function NovaAnaliseForm({ fields }: { fields: FieldOption[] }) {
                       step="0.01"
                       value={formData.parametrosQuimicos[key as keyof ChemicalData]}
                       onChange={(e) => handleChange("parametrosQuimicos", key, e.target.value)}
+                      placeholder="Em branco se ausente"
                       className="w-full !bg-white border-2 border-slate-300 rounded-xl px-4 py-2.5 !text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-main shadow-sm font-mono font-semibold"
                     />
                   </div>
@@ -275,15 +367,15 @@ export default function NovaAnaliseForm({ fields }: { fields: FieldOption[] }) {
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-800 mb-1.5 uppercase tracking-wider">Argila</label>
-                  <input type="number" value={formData.parametrosFisicos.argila} onChange={(e) => handleChange("parametrosFisicos", "argila", e.target.value)} className="w-full !bg-white border-2 border-slate-300 rounded-xl px-4 py-2.5 !text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-main shadow-sm font-mono font-semibold" />
+                  <input type="number" value={formData.parametrosFisicos.argila} onChange={(e) => handleChange("parametrosFisicos", "argila", e.target.value)} placeholder="—" className="w-full !bg-white border-2 border-slate-300 rounded-xl px-4 py-2.5 !text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-main shadow-sm font-mono font-semibold" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-800 mb-1.5 uppercase tracking-wider">Silte</label>
-                  <input type="number" value={formData.parametrosFisicos.silte} onChange={(e) => handleChange("parametrosFisicos", "silte", e.target.value)} className="w-full !bg-white border-2 border-slate-300 rounded-xl px-4 py-2.5 !text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-main shadow-sm font-mono font-semibold" />
+                  <input type="number" value={formData.parametrosFisicos.silte} onChange={(e) => handleChange("parametrosFisicos", "silte", e.target.value)} placeholder="—" className="w-full !bg-white border-2 border-slate-300 rounded-xl px-4 py-2.5 !text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-main shadow-sm font-mono font-semibold" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-800 mb-1.5 uppercase tracking-wider">Areia</label>
-                  <input type="number" value={formData.parametrosFisicos.areia} onChange={(e) => handleChange("parametrosFisicos", "areia", e.target.value)} className="w-full !bg-white border-2 border-slate-300 rounded-xl px-4 py-2.5 !text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-main shadow-sm font-mono font-semibold" />
+                  <input type="number" value={formData.parametrosFisicos.areia} onChange={(e) => handleChange("parametrosFisicos", "areia", e.target.value)} placeholder="—" className="w-full !bg-white border-2 border-slate-300 rounded-xl px-4 py-2.5 !text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-main shadow-sm font-mono font-semibold" />
                 </div>
               </div>
             </section>
@@ -311,6 +403,6 @@ export default function NovaAnaliseForm({ fields }: { fields: FieldOption[] }) {
 }
 
 function toInput(value: unknown): string {
-  if (value === null || value === undefined || value === "") return "";
+  if (value === null || value === undefined || value === "" || isNaN(value as number)) return "";
   return String(value);
 }
