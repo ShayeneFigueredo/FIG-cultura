@@ -18,6 +18,7 @@ export async function GET() {
         name: true,
         email: true,
         avatarUrl: true,
+        role: true,
         subscriptionStatus: true,
         subscriptionEndsAt: true,
         createdAt: true,
@@ -28,7 +29,9 @@ export async function GET() {
       return NextResponse.json({ message: "Usuário não encontrado." }, { status: 404 });
     }
 
-    return NextResponse.json(user, { status: 200 });
+    const subscriptionStatus = user.role === "ADMIN" ? "ACTIVE" : user.subscriptionStatus;
+
+    return NextResponse.json({ ...user, subscriptionStatus }, { status: 200 });
   } catch (error) {
     console.error("Profile GET error:", error);
     return NextResponse.json({ message: "Erro interno no servidor." }, { status: 500 });

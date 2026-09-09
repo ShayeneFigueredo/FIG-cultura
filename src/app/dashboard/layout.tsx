@@ -24,13 +24,14 @@ export default async function DashboardLayout({
       name: true,
       email: true,
       avatarUrl: true,
+      role: true,
       subscriptionStatus: true,
       subscriptionEndsAt: true,
       createdAt: true,
     },
   });
 
-  const subscriptionStatus = dbUser?.subscriptionStatus || "TRIAL";
+  const subscriptionStatus = dbUser?.role === "ADMIN" ? "ACTIVE" : (dbUser?.subscriptionStatus || "TRIAL");
   const subscriptionEndsAt = dbUser?.subscriptionEndsAt ? dbUser.subscriptionEndsAt.toISOString() : null;
   const createdAt = dbUser?.createdAt ? dbUser.createdAt.toISOString() : new Date().toISOString();
 
