@@ -12,12 +12,14 @@ import {
   Clock,
   Star,
   RefreshCw,
+  MessageCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSearchParams } from "next/navigation";
 
 const MP_MONTHLY_LINK = "https://mpago.la/1S7FPd4";
 const MP_YEARLY_LINK = "https://mpago.la/1E5uXrf";
+const WHATSAPP_LINK = "https://wa.me/5538997507651?text=Ol%C3%A1!%20Estou%20na%20p%C3%A1gina%20de%20planos%20do%20Cultiva%20e%20gostaria%20de%20tirar%20algumas%20d%C3%BAvidas.";
 
 export default function SubscriptionPage() {
   const [userStatus, setUserStatus] = useState<{
@@ -286,6 +288,36 @@ export default function SubscriptionPage() {
             {!isPro && <Zap className="w-4 h-4 text-yellow-300" />}
           </button>
         </div>
+      </div>
+
+      {/* Dúvidas / WhatsApp Banner */}
+      <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-slate-900 border-2 border-emerald-500/30 rounded-3xl p-6 sm:p-8 mb-12 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 text-white">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-[#25D366]/20 border border-[#25D366]/40 text-[#25D366] flex items-center justify-center shrink-0 shadow-inner">
+            <MessageCircle className="w-7 h-7" />
+          </div>
+          <div>
+            <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-[#25D366]/10 text-[#25D366] text-[11px] font-bold uppercase tracking-wider mb-1">
+              Atendimento Direto
+            </div>
+            <h3 className="text-xl font-black text-white">
+              Ficou com alguma dúvida sobre os planos?
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-300 font-normal mt-0.5 max-w-xl">
+              Fale diretamente com nossa equipe no WhatsApp para tirar dúvidas sobre recursos, formas de pagamento ou pacotes corporativos.
+            </p>
+          </div>
+        </div>
+
+        <a
+          href={WHATSAPP_LINK}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full md:w-auto px-6 py-3.5 rounded-2xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-sm shadow-lg shadow-[#25D366]/20 transition-all duration-200 hover:-translate-y-0.5 flex items-center justify-center gap-2.5 whitespace-nowrap shrink-0"
+        >
+          <MessageCircle className="w-5 h-5" />
+          <span>Falar no WhatsApp (38) 99750-7651</span>
+        </a>
       </div>
 
       {/* Garantia e FAQ */}
