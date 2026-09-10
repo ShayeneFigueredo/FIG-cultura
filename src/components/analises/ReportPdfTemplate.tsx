@@ -94,11 +94,35 @@ export default function ReportPdfTemplate({ data }: { data: ReportPdfData }) {
         </h2>
         <div className="grid grid-cols-6 gap-2">
           {Object.entries(data.diagnosis).map(([param, info]) => {
-            const isLow = info.level === "Baixo";
-            const isAdequate = info.level === "Adequado" || info.level === "Alto";
-            const cardBg = isLow ? "#fef2f2" : isAdequate ? "#ecfdf5" : "#fffbeb";
-            const cardBorder = isLow ? "#fecaca" : isAdequate ? "#a7f3d0" : "#fde68a";
-            const cardText = isLow ? "#7f1d1d" : isAdequate ? "#064e3b" : "#78350f";
+            const isPh = param.toUpperCase() === "PH";
+            let cardBg = "#fffbeb";
+            let cardBorder = "#fde68a";
+            let cardText = "#78350f";
+
+            if (isPh) {
+              if (info.level === "Adequado") {
+                // Ideal range (5.5 - 6.5) -> Verde
+                cardBg = "#ecfdf5";
+                cardBorder = "#a7f3d0";
+                cardText = "#064e3b";
+              } else {
+                // Baixo (< 5.5) ou Alto (> 6.5) -> Vermelho
+                cardBg = "#fef2f2";
+                cardBorder = "#fecaca";
+                cardText = "#7f1d1d";
+              }
+            } else {
+              // Outros nutrientes (P, K, Ca, Mg, V%)
+              if (info.level === "Baixo") {
+                cardBg = "#fef2f2";
+                cardBorder = "#fecaca";
+                cardText = "#7f1d1d";
+              } else if (info.level === "Adequado" || info.level === "Alto") {
+                cardBg = "#ecfdf5";
+                cardBorder = "#a7f3d0";
+                cardText = "#064e3b";
+              }
+            }
 
             return (
               <div

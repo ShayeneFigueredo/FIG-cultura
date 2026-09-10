@@ -39,8 +39,7 @@ export class AgronomicEngine {
     const v = value;
     switch(element.toUpperCase()) {
       case 'PH':
-        if (v < 5.0) return "Baixo";
-        if (v <= 5.4) return "Médio";
+        if (v < 5.5) return "Baixo";
         if (v <= 6.5) return "Adequado";
         return "Alto";
       case 'P': // Mehlich 1 approx (mg/dm3)
@@ -85,9 +84,21 @@ export class AgronomicEngine {
     const crop = CropDatabase[cropKey.toLowerCase()] || CropDatabase['outras'];
     const v2 = crop.targetVPercent;
     
+    // Se o pH for explicitamente ácido (< 5.5), o solo OBRIGATORIAMENTE precisa de calagem
+    if (ph !== undefined && ph > 0 && ph < 5.5) {
+      // Ajustar V% se veio distorcida (ex: 100% por falta de H+Al no laudo)
+      const adjustedV = vAtual >= v2 ? Math.max(15, (ph - 3.0) * 16) : vAtual;
+      const effectiveCtc = ctc > 0 ? ctc : 5.0;
+      const vNc = ((v2 - adjustedV) * effectiveCtc) / prnt;
+      const minNcByPh = (6.0 - ph) * (effectiveCtc * 0.35);
+      const finalNc = Math.max(vNc, minNcByPh);
+      return Math.max(0.5, parseFloat(finalNc.toFixed(2)));
+    }
+
     if (vAtual >= v2) return 0; // No liming needed
 
-    const nc = ((v2 - vAtual) * ctc) / prnt;
+    const effectiveCtc = ctc > 0 ? ctc : 4.5;
+    const nc = ((v2 - vAtual) * effectiveCtc) / prnt;
     return Math.max(0, parseFloat(nc.toFixed(2)));
   }
 

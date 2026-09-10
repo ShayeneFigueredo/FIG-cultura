@@ -63,9 +63,19 @@ export default function DataGrid({ analyses }: { analyses: GridAnalysis[] }) {
 
               const renderVal = (v: any) => (v === undefined || v === null || v === '') ? '-' : v;
 
-              const vPercent = Number(pMap["V%"] ?? pMap["V"] ?? pMap["V_percent"]);
-              const hasV = !isNaN(vPercent);
-              const acidezClass = !hasV ? "—" : vPercent < 50 ? "⚠️ Atenção" : "🟢 Adequado";
+              const rawV = pMap["V%"] ?? pMap["V"] ?? pMap["V_percent"];
+              const vPercent = Number(rawV);
+              const hasV = rawV !== undefined && rawV !== null && rawV !== "" && !isNaN(vPercent);
+              const phVal = Number(pMap["pH"]);
+              const hasPh = pMap["pH"] !== undefined && pMap["pH"] !== null && pMap["pH"] !== "" && !isNaN(phVal) && phVal > 0;
+              let acidezClass = "—";
+              if (hasPh) {
+                if (phVal < 5.5) acidezClass = "🔴 Baixo";
+                else if (phVal <= 6.5) acidezClass = "🟢 Adequado";
+                else acidezClass = "🔴 Alto";
+              } else if (hasV) {
+                acidezClass = vPercent < 50 ? "⚠️ Atenção" : "🟢 Adequado";
+              }
               const pValue = Number(pMap["P"]);
               const pClass = isNaN(pValue) ? "—" : pValue < 15 ? "🔴 Baixo" : "🟢 Adequado";
               const kValue = Number(pMap["K"]);

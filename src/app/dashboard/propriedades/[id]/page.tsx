@@ -88,6 +88,8 @@ export default async function PropriedadeDetalhes({ params }: { params: Promise<
       name: field.name,
       area: field.area,
       crop: field.crop,
+      latitude: field.latitude ?? undefined,
+      longitude: field.longitude ?? undefined,
       coordinates: (field.coordinates as unknown as [number, number][]) || undefined,
       latestAnalysis: latest
         ? {

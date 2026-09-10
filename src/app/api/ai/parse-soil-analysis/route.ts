@@ -55,6 +55,8 @@ REGRAS CRÍTICAS DE PREENCHIMENTO E PRECISÃO:
             K: { type: SchemaType.NUMBER },
             Ca: { type: SchemaType.NUMBER },
             Mg: { type: SchemaType.NUMBER },
+            Al: { type: SchemaType.NUMBER },
+            H_Al: { type: SchemaType.NUMBER },
             MO: { type: SchemaType.NUMBER },
             S: { type: SchemaType.NUMBER },
             CTC: { type: SchemaType.NUMBER },

@@ -25,7 +25,7 @@ type InitialData = {
 type PhysicalData = { argila: string; silte: string; areia: string };
 
 type ChemicalData = {
-  pH: string; P: string; K: string; Ca: string; Mg: string; MO: string;
+  pH: string; P: string; K: string; Ca: string; Mg: string; Al?: string; H_Al?: string; MO: string;
   S: string; CTC: string; V_percent: string; m_percent: string;
 };
 
@@ -44,7 +44,7 @@ const EMPTY_FORM: FormData = {
   },
   parametrosFisicos: { argila: "", silte: "", areia: "" },
   parametrosQuimicos: {
-    pH: "", P: "", K: "", Ca: "", Mg: "", MO: "", S: "", CTC: "", V_percent: "", m_percent: "",
+    pH: "", P: "", K: "", Ca: "", Mg: "", Al: "", H_Al: "", MO: "", S: "", CTC: "", V_percent: "", m_percent: "",
   },
 };
 
@@ -136,6 +136,8 @@ export default function NovaAnaliseForm({
             K: toInput(data.parametrosQuimicos?.K),
             Ca: toInput(data.parametrosQuimicos?.Ca),
             Mg: toInput(data.parametrosQuimicos?.Mg),
+            Al: toInput(data.parametrosQuimicos?.Al),
+            H_Al: toInput(data.parametrosQuimicos?.H_Al),
             MO: toInput(data.parametrosQuimicos?.MO),
             S: toInput(data.parametrosQuimicos?.S),
             CTC: toInput(data.parametrosQuimicos?.CTC),

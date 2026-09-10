@@ -45,11 +45,12 @@ export async function generateAndPersistAnalysisPlanning(analysisId: string) {
   const yieldTon = AgronomicEngine.scToTon(yieldRaw, cropKey);
 
   const getParam = (el: string) => {
-    return (
-      analysis.parameters.find(
-        (p) => p.element.toUpperCase() === el.toUpperCase()
-      )?.value || 0
-    );
+    const match = analysis.parameters.find((p) => {
+      const cleanP = p.element.toUpperCase().replace(/[\s_]+/g, "");
+      const cleanEl = el.toUpperCase().replace(/[\s_]+/g, "");
+      return cleanP === cleanEl || cleanP === cleanEl.replace("%", "PERCENT");
+    });
+    return match?.value || 0;
   };
 
   const ph = getParam("pH");
@@ -57,17 +58,44 @@ export async function generateAndPersistAnalysisPlanning(analysisId: string) {
   const k = getParam("K");
   const ca = getParam("Ca");
   const mg = getParam("Mg");
-  const h_al = getParam("H+Al") || getParam("H+AL");
+  const al = getParam("Al");
+  const directV = getParam("V_percent") || getParam("V%") || getParam("V");
+  const directCtc = getParam("CTC") || getParam("T");
+  const h_al = getParam("H+Al") || getParam("H+AL") || getParam("H_Al") || getParam("H_AL") || getParam("H + Al") || getParam("HAL") || getParam("H");
 
   const sb = ca + mg + k;
-  const ctc = sb + h_al;
-  const vPercent = ctc > 0 ? (sb / ctc) * 100 : getParam("V%") || getParam("V_percent") || 0;
+
+  let ctc = 0;
+  let vPercent = 0;
+
+  if (directCtc > 0) {
+    ctc = directCtc;
+    vPercent = directV > 0 ? directV : (sb > 0 ? (sb / ctc) * 100 : 0);
+  } else if (h_al > 0) {
+    ctc = sb + h_al;
+    vPercent = directV > 0 ? directV : (ctc > 0 ? (sb / ctc) * 100 : 0);
+  } else if (directV > 0) {
+    vPercent = directV;
+    ctc = vPercent > 0 && sb > 0 ? (sb / (vPercent / 100)) : (sb > 0 ? sb + 2.5 : 5.0);
+  } else {
+    if (ph > 0 && ph < 5.5) {
+      vPercent = Math.max(10, Math.min(50, (ph - 3.0) * 16));
+      const estimatedHAl = al > 0 ? Math.max(al * 2.5, 2.5) : (sb > 0 ? sb * ((100 - vPercent) / Math.max(1, vPercent)) : 4.0);
+      ctc = sb > 0 ? sb + estimatedHAl : 5.0;
+    } else if (ph >= 6.8) {
+      vPercent = 80;
+      ctc = sb > 0 ? sb : 5.0;
+    } else {
+      vPercent = 60;
+      ctc = sb > 0 ? sb + 1.5 : 5.0;
+    }
+  }
 
   const pLevel = AgronomicEngine.interpretNutrient("P", p);
   const kLevel = AgronomicEngine.interpretNutrient("K", k);
 
   // Cálculos agronômicos do motor
-  const limingTonPerHa = AgronomicEngine.calculateLiming(ctc, vPercent, cropKey, 100, ph);
+  const limingTonPerHa = ph >= 6.8 ? 0 : AgronomicEngine.calculateLiming(ctc, vPercent, cropKey, 100, ph);
   const sulfurKgHa = AgronomicEngine.calculateAcidification(ph);
   const npkNeeds = AgronomicEngine.calculateNPK(cropKey, yieldTon, pLevel, kLevel);
   const strategyItems = FertilizerCalculator.generateBasicStrategy(npkNeeds);

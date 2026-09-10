@@ -12,12 +12,15 @@ import {
   FileText,
   Eye,
   X,
+  MessageSquare,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
 import ReportPdfTemplate, { ReportPdfData } from "@/components/analises/ReportPdfTemplate";
 import { exportElementToPdf } from "@/lib/pdfExporter";
+import { FiggerMascot } from "@/components/ui/FiggerMascot";
 
 export default function PlanejamentoSafraPage() {
   const { id } = useParams() as { id: string };
@@ -64,14 +67,24 @@ export default function PlanejamentoSafraPage() {
     return <div className="p-10 text-red-400">{error || "Erro desconhecido"}</div>;
   }
 
-  const getLevelColor = (level: string) => {
+  const getLevelColor = (param: string, level: string) => {
+    const isPh = param.toUpperCase() === "PH";
+    if (isPh) {
+      if (level === "Adequado") return "text-emerald-700 bg-emerald-50 border-2 border-emerald-200 font-bold";
+      return "text-red-700 bg-red-50 border-2 border-red-200 font-bold";
+    }
     if (level === "Baixo") return "text-red-700 bg-red-50 border-2 border-red-200 font-bold";
     if (level === "Médio") return "text-amber-700 bg-amber-50 border-2 border-amber-200 font-bold";
     if (level === "Adequado" || level === "Alto") return "text-emerald-700 bg-emerald-50 border-2 border-emerald-200 font-bold";
     return "text-slate-700 bg-slate-100 border-2 border-slate-200 font-bold";
   };
 
-  const getLevelIcon = (level: string) => {
+  const getLevelIcon = (param: string, level: string) => {
+    const isPh = param.toUpperCase() === "PH";
+    if (isPh) {
+      if (level === "Adequado") return <CheckCircle2 className="w-4 h-4 text-emerald-600" />;
+      return <AlertTriangle className="w-4 h-4 text-red-600" />;
+    }
     if (level === "Baixo") return <AlertTriangle className="w-4 h-4 text-red-600" />;
     if (level === "Médio") return <AlertTriangle className="w-4 h-4 text-amber-600" />;
     if (level === "Adequado" || level === "Alto") return <CheckCircle2 className="w-4 h-4 text-emerald-600" />;
@@ -195,6 +208,14 @@ export default function PlanejamentoSafraPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            <Link
+              href={`/dashboard/recomendacoes?analysisId=${id}`}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-50 border-2 border-emerald-300 text-emerald-800 hover:bg-emerald-100 font-bold text-sm transition-all shadow-sm"
+            >
+              <MessageSquare className="w-4 h-4 text-emerald-700" />
+              Tirar Dúvidas com Figger
+            </Link>
+
             <button
               onClick={() => setShowPreviewModal(true)}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border-2 border-slate-300 text-slate-900 hover:bg-slate-50 font-semibold text-sm transition-all shadow-sm"
@@ -213,6 +234,28 @@ export default function PlanejamentoSafraPage() {
           </div>
         </div>
       </header>
+
+      {/* Banner de Consulta ao Figger */}
+      <div className="mb-8 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-lime-50 border-2 border-emerald-200 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+        <div className="flex items-center gap-3.5">
+          <FiggerMascot className="w-12 h-12 sm:w-14 sm:h-14 shrink-0 drop-shadow-md" />
+          <div>
+            <h3 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+              Dúvidas sobre os cálculos ou laudo deste talhão?
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-600 font-medium">
+              O Figger analisa o laudo da fazenda <strong>{data.propertyName}</strong> e explica doses de calcário, saturação por bases (V%) e adubação ideal.
+            </p>
+          </div>
+        </div>
+        <Link
+          href={`/dashboard/recomendacoes?analysisId=${id}`}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm shrink-0 transition-all shadow-md hover:scale-[1.02]"
+        >
+          <MessageSquare className="w-4 h-4 text-emerald-400" />
+          Consultar o Figger
+        </Link>
+      </div>
 
       {/* Tabs */}
       <div className="flex overflow-x-auto gap-2 mb-8 pb-2 border-b-2 border-slate-200 hide-scrollbar">
@@ -253,10 +296,11 @@ export default function PlanejamentoSafraPage() {
                   <div className="text-3xl font-extrabold text-slate-900 mb-3">{info.value}</div>
                   <div
                     className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${getLevelColor(
+                      param,
                       info.level
                     )}`}
                   >
-                    {getLevelIcon(info.level)} {info.level}
+                    {getLevelIcon(param, info.level)} {info.level}
                   </div>
                 </div>
               ))}
@@ -302,24 +346,32 @@ export default function PlanejamentoSafraPage() {
                     ⚠️ <strong>ATENÇÃO AGRONÔMICA:</strong> O pH deste solo está elevado ({data.diagnosis.pH.value}). <strong>NÃO utilize Calcário</strong>, pois ele aumentaria ainda mais a alcalinidade. Utilize <strong>Enxofre Elementar (S⁰)</strong> para baixar o pH de volta para a faixa ideal (5,5 a 6,5).
                   </p>
                 </div>
-              ) : !data.liming.needed ? (
+              ) : Number(data.diagnosis.pH.value) < 5.5 || data.liming.needed || data.liming.tonPerHa > 0 ? (
+                <div className="space-y-4">
+                  <div className="w-16 h-16 bg-red-100 text-red-700 rounded-full flex items-center justify-center mx-auto mb-2 border-2 border-red-300">
+                    <AlertTriangle className="w-8 h-8" />
+                  </div>
+                  <span className="px-3 py-1 rounded-full bg-red-100 text-red-900 font-extrabold text-xs uppercase tracking-wider">
+                    Solo Ácido (pH {data.diagnosis.pH.value})
+                  </span>
+                  <h3 className="text-2xl font-bold text-slate-900 mt-2">
+                    Aplicação de Calcário Agrícola (Calagem)
+                  </h3>
+                  <div className="text-5xl font-extrabold text-slate-900 my-4 font-mono">
+                    {data.liming.tonPerHa > 0 ? data.liming.tonPerHa : "1.5"} <span className="text-2xl text-slate-500 font-semibold font-sans">ton/ha</span>
+                  </div>
+                  <p className="text-slate-700 text-sm font-medium max-w-md mx-auto leading-relaxed bg-red-50 border border-red-200 p-4 rounded-2xl text-left">
+                    O pH atual ({data.diagnosis.pH.value}) está abaixo da faixa ideal (5,5 a 6,5). Realizar calagem com calcário (PRNT 100%) para neutralizar o alumínio tóxico e elevar a saturação por bases (V%) exigida pela cultura ({data.crop}).
+                  </p>
+                </div>
+              ) : (
                 <div className="space-y-4">
                   <div className="w-16 h-16 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto mb-2 border-2 border-emerald-300">
                     <CheckCircle2 className="w-8 h-8" />
                   </div>
                   <h3 className="text-xl font-bold text-slate-900">Solo Corrigido / pH Ideal</h3>
                   <p className="text-slate-600 text-sm font-medium">
-                    O nível de V% atual ({data.diagnosis.V.value}%) e o pH ({data.diagnosis.pH.value}) já estão na faixa ideal (5,5 - 6,5) exigida pela cultura ({data.crop}). Não há necessidade de calagem.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <h3 className="text-xl font-bold text-slate-900">Aplicar Calcário (Solo Ácido)</h3>
-                  <div className="text-5xl font-extrabold text-slate-900 my-6 font-mono">
-                    {data.liming.tonPerHa} <span className="text-2xl text-slate-500 font-semibold font-sans">ton/ha</span>
-                  </div>
-                  <p className="text-slate-600 text-sm font-medium">
-                    Considerando calcário com PRNT 100% para elevar o pH e a V% ao nível da cultura.
+                    O nível de V% atual ({data.diagnosis.V.value}%) e o pH ({data.diagnosis.pH.value}) estão na faixa ideal (5,5 - 6,5) exigida pela cultura ({data.crop}). Não há necessidade de calagem.
                   </p>
                 </div>
               )}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -18,7 +18,6 @@ import {
   MapPin,
   Layers,
   Info,
-  Filter,
   ArrowUpRight,
   Search,
   Loader2,
@@ -26,26 +25,62 @@ import {
   RotateCcw,
   Check,
   X,
+  PlusCircle,
+  Trash2,
+  Globe,
+  Navigation,
+  Compass,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
-// Custom Leaflet Pin Icon for clicked locations
-const customPinIcon = L.icon({
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-});
+// Ícones personalizados SVG para o Google Earth
+const createCustomPinIcon = (color: string = "#10b981", label: string = "") => {
+  return L.divIcon({
+    className: "custom-leaflet-marker",
+    html: `
+      <div style="display: flex; flex-direction: column; align-items: center; cursor: pointer; transform: translate(-50%, -100%);">
+        ${
+          label
+            ? `<div style="background: rgba(15, 23, 42, 0.9); color: white; font-weight: bold; font-size: 11px; padding: 2px 8px; border-radius: 9999px; border: 1px solid ${color}; white-space: nowrap; margin-bottom: 3px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.5);">${label}</div>`
+            : ""
+        }
+        <svg width="32" height="42" viewBox="0 0 32 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#000000" floodOpacity="0.5"/>
+          </filter>
+          <path d="M16 0C7.16344 0 0 7.16344 0 16C0 26 16 42 16 42C16 42 32 26 32 16C32 7.16344 24.8366 0 16 0Z" fill="${color}" filter="url(#shadow)"/>
+          <circle cx="16" cy="16" r="6.5" fill="#ffffff"/>
+        </svg>
+      </div>
+    `,
+    iconSize: [32, 42],
+    iconAnchor: [16, 42],
+    popupAnchor: [0, -40],
+  });
+};
+
+const defaultPinIcon = createCustomPinIcon("#10b981");
+const samplePinIcon = createCustomPinIcon("#f59e0b");
+const clickedPinIcon = createCustomPinIcon("#ef4444", "Novo Ponto");
+
+export type CustomMapMarker = {
+  id: string;
+  name: string;
+  category: "TALHAO" | "AMOSTRA" | "SEDE" | "PIVO" | "OUTRO";
+  lat: number;
+  lng: number;
+  fieldId?: string;
+};
 
 export type FieldGisData = {
   id: string;
   name: string;
   area: number;
   crop?: string | null;
+  latitude?: number;
+  longitude?: number;
   latestAnalysis?: {
     id: string;
     vPercent?: number | null;
@@ -67,38 +102,38 @@ type Props = {
   centerLng?: number;
 };
 
-// Map click handler for drawing polygons or dropping pins
+// Manipulador de cliques no mapa (Desenho ou Adição de Marcadores)
 function MapClickHandler({
-  isDrawingMode,
+  mode,
   onAddPoint,
-  onSelectLocation,
+  onDropMarker,
 }: {
-  isDrawingMode: boolean;
+  mode: "view" | "drawing" | "add_marker";
   onAddPoint: (lat: number, lng: number) => void;
-  onSelectLocation: (lat: number, lng: number) => void;
+  onDropMarker: (lat: number, lng: number) => void;
 }) {
   useMapEvents({
     click(e) {
-      if (isDrawingMode) {
+      if (mode === "drawing") {
         onAddPoint(e.latlng.lat, e.latlng.lng);
-      } else {
-        onSelectLocation(e.latlng.lat, e.latlng.lng);
+      } else if (mode === "add_marker") {
+        onDropMarker(e.latlng.lat, e.latlng.lng);
       }
     },
   });
   return null;
 }
 
-// Re-centers map dynamically when search or saved location changes
+// Recentraliza o mapa suavemente
 function MapFlyTo({ center }: { center: [number, number] }) {
   const map = useMap();
-  React.useEffect(() => {
+  useEffect(() => {
     map.flyTo(center, 15, { duration: 1.2 });
   }, [center, map]);
   return null;
 }
 
-// Generates an organic, irregular farm polygon contour (not a rigid square)
+// Gera contorno orgânico para talhão caso não haja polígono desenhado
 function getOrganicFarmPolygon(index: number, baseLat: number, baseLng: number): [number, number][] {
   const row = Math.floor(index / 2);
   const col = index % 2;
@@ -107,11 +142,11 @@ function getOrganicFarmPolygon(index: number, baseLat: number, baseLng: number):
   const lng = baseLng + col * 0.008;
 
   return [
-    [lat - 0.0022, lng - 0.0030],
+    [lat - 0.0022, lng - 0.003],
     [lat - 0.0028, lng + 0.0018],
     [lat + 0.0008, lng + 0.0035],
     [lat + 0.0028, lng + 0.0012],
-    [lat + 0.0020, lng - 0.0028],
+    [lat + 0.002, lng - 0.0028],
   ];
 }
 
@@ -125,14 +160,18 @@ export default function FieldMapGisClient({
 }: Props) {
   const router = useRouter();
 
-  // If fields have custom coordinates, calculate initial average center
-  const initialCenter: [number, number] = React.useMemo(() => {
+  // Calcular centro inicial a partir de coordenadas ou campos
+  const initialCenter: [number, number] = useMemo(() => {
     const fieldsWithCoords = fields.filter((f) => f.coordinates && f.coordinates.length > 0);
     if (fieldsWithCoords.length > 0) {
       const allPoints = fieldsWithCoords.flatMap((f) => f.coordinates!);
       const avgLat = allPoints.reduce((acc, p) => acc + p[0], 0) / allPoints.length;
       const avgLng = allPoints.reduce((acc, p) => acc + p[1], 0) / allPoints.length;
       return [avgLat, avgLng];
+    }
+    const fieldsWithLat = fields.filter((f) => f.latitude && f.longitude);
+    if (fieldsWithLat.length > 0) {
+      return [fieldsWithLat[0].latitude!, fieldsWithLat[0].longitude!];
     }
     return [centerLat, centerLng];
   }, [fields, centerLat, centerLng]);
@@ -141,15 +180,27 @@ export default function FieldMapGisClient({
   const [mapCenter, setMapCenter] = useState<[number, number]>(initialCenter);
   const [searchQuery, setSearchQuery] = useState(`${city || ""} ${state || ""}`.trim());
   const [isSearching, setIsSearching] = useState(false);
-  const [clickedPin, setClickedPin] = useState<{ lat: number; lng: number } | null>(null);
 
-  // Polygon Drawing Mode States
-  const [isDrawingMode, setIsDrawingMode] = useState(false);
+  // Modos de interação: Visualização / Desenho / Adicionar Marcador
+  const [activeMode, setActiveMode] = useState<"view" | "drawing" | "add_marker">("view");
+
+  // Estados de Marcadores
+  const [customMarkers, setCustomMarkers] = useState<CustomMapMarker[]>([]);
+  const [activeMarkerForm, setActiveMarkerForm] = useState<{
+    lat: number;
+    lng: number;
+    name: string;
+    category: "TALHAO" | "AMOSTRA" | "SEDE" | "PIVO" | "OUTRO";
+    targetFieldId: string;
+  } | null>(null);
+  const [isSavingMarker, setIsSavingMarker] = useState(false);
+
+  // Estados de Desenho de Polígonos
   const [drawnPoints, setDrawnPoints] = useState<[number, number][]>([]);
   const [selectedFieldToSave, setSelectedFieldToSave] = useState<string>(fields[0]?.id || "");
   const [isSavingPolygon, setIsSavingPolygon] = useState(false);
 
-  // Address Geocoding via OpenStreetMap Nominatim
+  // Geocodificação / Busca de Endereço ou Coordenadas GPS
   const handleSearchAddress = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!searchQuery.trim()) return;
@@ -161,7 +212,7 @@ export default function FieldMapGisClient({
         const lat = parseFloat(coordMatch[1]);
         const lng = parseFloat(coordMatch[2]);
         setMapCenter([lat, lng]);
-        setClickedPin({ lat, lng });
+        toast.success(`Google Earth centralizado em: Lat ${lat.toFixed(5)}, Lng ${lng.toFixed(5)}`);
         setIsSearching(false);
         return;
       }
@@ -174,10 +225,9 @@ export default function FieldMapGisClient({
         const lat = parseFloat(data[0].lat);
         const lng = parseFloat(data[0].lon);
         setMapCenter([lat, lng]);
-        setClickedPin({ lat, lng });
-        toast.success(`Mapa centralizado em: ${data[0].display_name.split(",")[0]}`);
+        toast.success(`Google Earth centralizado em: ${data[0].display_name.split(",")[0]}`);
       } else {
-        toast.error("Localização não encontrada. Tente com nome da cidade, UF ou coordenadas.");
+        toast.error("Localização não encontrada. Tente com nome da cidade, UF ou coordenadas GPS.");
       }
     } catch {
       toast.error("Erro ao buscar endereço no mapa.");
@@ -186,6 +236,64 @@ export default function FieldMapGisClient({
     }
   };
 
+  // Manipulação de Marcador Solto no Google Earth
+  const handleDropMarker = (lat: number, lng: number) => {
+    setActiveMarkerForm({
+      lat,
+      lng,
+      name: `Ponto de Amostragem ${customMarkers.length + 1}`,
+      category: "AMOSTRA",
+      targetFieldId: fields[0]?.id || "",
+    });
+  };
+
+  const handleSaveMarker = async () => {
+    if (!activeMarkerForm) return;
+
+    setIsSavingMarker(true);
+    try {
+      // Se for associado a um talhão, persiste latitude/longitude no banco
+      if (activeMarkerForm.targetFieldId) {
+        const res = await fetch(`/api/fields/${activeMarkerForm.targetFieldId}/coordinates`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            latitude: activeMarkerForm.lat,
+            longitude: activeMarkerForm.lng,
+          }),
+        });
+        if (!res.ok) {
+          throw new Error("Erro ao salvar coordenada no talhão.");
+        }
+      }
+
+      const newMarker: CustomMapMarker = {
+        id: `marker-${Date.now()}`,
+        name: activeMarkerForm.name || "Novo Marcador",
+        category: activeMarkerForm.category,
+        lat: activeMarkerForm.lat,
+        lng: activeMarkerForm.lng,
+        fieldId: activeMarkerForm.targetFieldId || undefined,
+      };
+
+      setCustomMarkers((prev) => [...prev, newMarker]);
+      toast.success(`Marcador "${newMarker.name}" adicionado ao mapa com sucesso!`);
+      setActiveMarkerForm(null);
+      setActiveMode("view");
+      router.refresh();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao salvar marcador.");
+    } finally {
+      setIsSavingMarker(false);
+    }
+  };
+
+  const handleDeleteMarker = (id: string) => {
+    setCustomMarkers((prev) => prev.filter((m) => m.id !== id));
+    toast.info("Marcador removido do mapa.");
+  };
+
+  // Manipulação de Desenho de Polígono
   const handleAddDrawnPoint = (lat: number, lng: number) => {
     setDrawnPoints((prev) => [...prev, [lat, lng]]);
   };
@@ -200,7 +308,7 @@ export default function FieldMapGisClient({
 
   const handleSavePolygon = async () => {
     if (drawnPoints.length < 3) {
-      toast.error("Desenhe ao menos 3 vértices no mapa para formar o polígono do talhão.");
+      toast.error("Desenhe ao menos 3 vértices no Google Earth para formar o contorno do talhão.");
       return;
     }
 
@@ -222,18 +330,18 @@ export default function FieldMapGisClient({
         throw new Error(data.message || "Erro ao salvar desenho.");
       }
 
-      toast.success("Desenho do talhão salvo com sucesso!");
-      setIsDrawingMode(false);
+      toast.success("Contorno do talhão salvo no Google Earth!");
+      setActiveMode("view");
       setDrawnPoints([]);
       router.refresh();
     } catch (err: any) {
-      toast.error(err.message || "Erro ao salvar o polígono.");
+      toast.error(err.message || "Erro ao salvar o contorno.");
     } finally {
       setIsSavingPolygon(false);
     }
   };
 
-  // Determine field polygon color based on nutrient level
+  // Cor do Polígono do Talhão no Google Earth conforme nutriente
   const getFieldColor = (field: FieldGisData) => {
     const analysis = field.latestAnalysis;
     if (!analysis) return { fill: "#94a3b8", border: "#64748b", label: "Sem Análise" };
@@ -267,70 +375,99 @@ export default function FieldMapGisClient({
   };
 
   return (
-    <div className="bg-black/40 border border-white/10 rounded-3xl overflow-hidden shadow-2xl flex flex-col">
-      {/* Top Map Toolbar with Address Search and Drawing Tools */}
-      <div className="p-4 bg-white/5 border-b border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="bg-slate-900 border-2 border-slate-700 rounded-3xl overflow-hidden shadow-2xl flex flex-col">
+      {/* Top Map Toolbar com Google Earth & Ferramentas de Marcadores */}
+      <div className="p-4 bg-slate-800/90 border-b border-slate-700 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-brand-main/20 flex items-center justify-center border border-brand-main/30 text-brand-main shrink-0">
-            <Layers className="w-5 h-5" />
+          <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 text-emerald-400 shrink-0">
+            <Globe className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="font-semibold text-white text-base flex items-center gap-2">
-              Mapa GIS — {propertyName}
+            <h3 className="font-bold text-white text-base flex items-center gap-2">
+              Google Earth Satélite — {propertyName}
             </h3>
-            <p className="text-xs text-white/50 flex items-center gap-1">
-              <MapPin className="w-3.5 h-3.5 text-brand-main" /> {city && state ? `${city}/${state}` : "Visão Georreferenciada Satélite"}
+            <p className="text-xs text-slate-300 flex items-center gap-1 font-medium">
+              <MapPin className="w-3.5 h-3.5 text-emerald-400" />{" "}
+              {city && state ? `${city}/${state}` : "Visão Georreferenciada Google Earth"}
             </p>
           </div>
         </div>
 
-        {/* Controls: Search, Draw Mode, Nutrient Filters */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          {/* Address Search */}
-          <form onSubmit={handleSearchAddress} className="flex items-center relative">
+        {/* Ferramentas: Adicionar Marcador, Desenhar Talhão, Busca e Filtros */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Busca por Endereço ou GPS */}
+          <form onSubmit={handleSearchAddress} className="flex items-center relative min-w-[200px]">
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar cidade, endereço ou lat, lng..."
-              className="bg-black/50 border border-white/10 rounded-xl pl-9 pr-24 py-2 text-xs text-white placeholder-white/40 focus:outline-none focus:border-brand-main w-full sm:w-60"
+              placeholder="Buscar cidade, CEP ou lat, lng..."
+              className="bg-slate-900/90 border border-slate-600 rounded-xl pl-8 pr-20 py-2 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-emerald-400 w-full"
             />
-            <Search className="w-4 h-4 text-white/40 absolute left-3" />
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5" />
             <button
               type="submit"
               disabled={isSearching}
-              className="absolute right-1.5 px-3 py-1 bg-brand-main hover:bg-brand-light text-white font-bold text-[10px] rounded-lg transition-colors flex items-center gap-1"
+              className="absolute right-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] rounded-lg transition-colors flex items-center gap-1 shadow-sm"
             >
               {isSearching ? <Loader2 className="w-3 h-3 animate-spin" /> : "Buscar"}
             </button>
           </form>
 
-          {/* Toggle Polygon Drawing Mode Button */}
+          {/* Botão Adicionar Marcador 📍 */}
           <button
             onClick={() => {
-              setIsDrawingMode(!isDrawingMode);
-              if (!isDrawingMode) toast.info("Clique no mapa de satélite ponto a ponto para desenhar o contorno real da fazenda/talhão.");
+              if (activeMode === "add_marker") {
+                setActiveMode("view");
+                setActiveMarkerForm(null);
+              } else {
+                setActiveMode("add_marker");
+                setDrawnPoints([]);
+                toast.info("Clique em qualquer ponto do Google Earth para adicionar um marcador ou ponto de amostragem.");
+              }
             }}
             className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all border ${
-              isDrawingMode
-                ? "bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.3)]"
-                : "bg-white/10 hover:bg-white/20 text-white border-white/10"
+              activeMode === "add_marker"
+                ? "bg-emerald-500 text-white border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.4)]"
+                : "bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-600"
+            }`}
+          >
+            <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+            {activeMode === "add_marker" ? "Clique no Mapa 📍" : "Adicionar Marcador"}
+          </button>
+
+          {/* Botão Desenhar Talhão ✏️ */}
+          <button
+            onClick={() => {
+              if (activeMode === "drawing") {
+                setActiveMode("view");
+                setDrawnPoints([]);
+              } else {
+                setActiveMode("drawing");
+                setActiveMarkerForm(null);
+                toast.info("Clique ponto a ponto no Google Earth para traçar o contorno do talhão.");
+              }
+            }}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all border ${
+              activeMode === "drawing"
+                ? "bg-amber-500 text-white border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.4)]"
+                : "bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-600"
             }`}
           >
             <PenTool className="w-3.5 h-3.5" />
-            {isDrawingMode ? "Modo Desenho Ativo" : "Desenhar Talhão"}
+            {activeMode === "drawing" ? "Desenhando ✏️" : "Desenhar Talhão"}
           </button>
 
-          {/* Filter Selection */}
-          <div className="flex items-center gap-1 bg-black/50 p-1 rounded-xl border border-white/10 text-xs shrink-0">
+          {/* Filtros de Fertilidade */}
+          <div className="flex items-center gap-1 bg-slate-900/90 p-1 rounded-xl border border-slate-700 text-xs shrink-0">
             {(["V", "P", "K", "pH"] as const).map((mode) => (
               <button
                 key={mode}
                 onClick={() => setFilterNutrient(mode)}
                 className={`px-2.5 py-1 rounded-lg font-bold transition-all text-xs ${
                   filterNutrient === mode
-                    ? "bg-brand-main text-white shadow-md"
-                    : "text-white/60 hover:text-white hover:bg-white/5"
+                    ? "bg-emerald-600 text-white shadow-md"
+                    : "text-slate-400 hover:text-white hover:bg-slate-800"
                 }`}
               >
                 {mode === "V" ? "V%" : mode === "P" ? "P" : mode === "K" ? "K" : "pH"}
@@ -340,13 +477,110 @@ export default function FieldMapGisClient({
         </div>
       </div>
 
-      {/* Polygon Drawing Banner Controls */}
-      {isDrawingMode && (
+      {/* Banner de Adição de Marcador */}
+      {activeMode === "add_marker" && !activeMarkerForm && (
+        <div className="bg-emerald-500/10 border-b border-emerald-500/30 p-3 px-6 flex items-center justify-between gap-4 text-xs">
+          <div className="flex items-center gap-2 text-emerald-300 font-medium">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+            <span>
+              <strong>Modo de Marcador Ativo:</strong> Clique diretamente no local desejado no mapa Google Earth para fixar o ponto.
+            </span>
+          </div>
+          <button
+            onClick={() => setActiveMode("view")}
+            className="text-slate-400 hover:text-white flex items-center gap-1 font-semibold"
+          >
+            <X className="w-4 h-4" /> Cancelar
+          </button>
+        </div>
+      )}
+
+      {/* Modal / Painel Inline para Configurar o Novo Marcador Clicado */}
+      {activeMarkerForm && (
+        <div className="bg-slate-800 border-b border-emerald-500/40 p-4 px-6 flex flex-wrap items-center justify-between gap-4 text-xs animate-in fade-in duration-200">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-1.5 text-emerald-400 font-bold text-sm">
+              <MapPin className="w-4 h-4" /> Novo Marcador:
+            </div>
+
+            <input
+              type="text"
+              value={activeMarkerForm.name}
+              onChange={(e) => setActiveMarkerForm({ ...activeMarkerForm, name: e.target.value })}
+              placeholder="Nome do Ponto (ex: Ponto Amostra 1)"
+              className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-white font-medium text-xs focus:outline-none focus:border-emerald-400 w-48"
+            />
+
+            <select
+              value={activeMarkerForm.category}
+              onChange={(e) =>
+                setActiveMarkerForm({
+                  ...activeMarkerForm,
+                  category: e.target.value as any,
+                })
+              }
+              aria-label="Categoria do Marcador"
+              className="bg-slate-900 border border-slate-600 rounded-lg px-2.5 py-1.5 text-slate-200 text-xs font-semibold"
+            >
+              <option value="AMOSTRA">Ponto de Amostragem</option>
+              <option value="TALHAO">Centro do Talhão</option>
+              <option value="SEDE">Sede da Fazenda</option>
+              <option value="PIVO">Pivô de Irrigação</option>
+              <option value="OUTRO">Outro Ponto de Interesse</option>
+            </select>
+
+            {fields.length > 0 && (
+              <select
+                value={activeMarkerForm.targetFieldId}
+                onChange={(e) =>
+                  setActiveMarkerForm({
+                    ...activeMarkerForm,
+                    targetFieldId: e.target.value,
+                  })
+                }
+                aria-label="Vincular Marcador ao Talhão"
+                className="bg-slate-900 border border-slate-600 rounded-lg px-2.5 py-1.5 text-emerald-300 text-xs font-semibold"
+              >
+                <option value="">Não vincular a talhão</option>
+                {fields.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    Vincular ao: {f.name} ({f.area} ha)
+                  </option>
+                ))}
+              </select>
+            )}
+
+            <span className="text-slate-400 font-mono text-[11px]">
+              [{activeMarkerForm.lat.toFixed(5)}, {activeMarkerForm.lng.toFixed(5)}]
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setActiveMarkerForm(null)}
+              className="flex items-center gap-1 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg transition-colors font-semibold"
+            >
+              <X className="w-3.5 h-3.5" /> Cancelar
+            </button>
+            <button
+              onClick={handleSaveMarker}
+              disabled={isSavingMarker}
+              className="flex items-center gap-1 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold rounded-lg transition-all shadow-md"
+            >
+              {isSavingMarker ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+              {isSavingMarker ? "Salvando..." : "Salvar Marcador"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Banner de Desenho de Polígono */}
+      {activeMode === "drawing" && (
         <div className="bg-amber-500/10 border-b border-amber-500/30 p-3 px-6 flex flex-wrap items-center justify-between gap-4 text-xs">
           <div className="flex items-center gap-2 text-amber-200 font-medium">
             <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
             <span>
-              Clique no mapa para criar vértices (Pontos inseridos: <strong>{drawnPoints.length}</strong>).
+              Clique no Google Earth para traçar os limites (Vértices marcados: <strong>{drawnPoints.length}</strong>).
             </span>
           </div>
 
@@ -355,7 +589,8 @@ export default function FieldMapGisClient({
               <select
                 value={selectedFieldToSave}
                 onChange={(e) => setSelectedFieldToSave(e.target.value)}
-                className="bg-black/60 border border-white/20 rounded-lg px-2.5 py-1 text-white text-xs"
+                aria-label="Salvar Contorno para Talhão"
+                className="bg-slate-900 border border-slate-600 rounded-lg px-2.5 py-1 text-white text-xs font-semibold"
               >
                 {fields.map((f) => (
                   <option key={f.id} value={f.id}>
@@ -368,7 +603,7 @@ export default function FieldMapGisClient({
             <button
               onClick={handleUndoDrawnPoint}
               disabled={drawnPoints.length === 0}
-              className="flex items-center gap-1 px-2.5 py-1 bg-white/10 hover:bg-white/20 disabled:opacity-40 text-white rounded-lg transition-colors"
+              className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-white rounded-lg transition-colors font-medium"
             >
               <RotateCcw className="w-3 h-3" /> Desfazer
             </button>
@@ -376,7 +611,7 @@ export default function FieldMapGisClient({
             <button
               onClick={handleClearDrawnPoints}
               disabled={drawnPoints.length === 0}
-              className="flex items-center gap-1 px-2.5 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg transition-colors"
+              className="flex items-center gap-1 px-2.5 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg transition-colors font-medium"
             >
               <X className="w-3 h-3" /> Limpar
             </button>
@@ -387,14 +622,14 @@ export default function FieldMapGisClient({
               className="flex items-center gap-1 px-3 py-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold rounded-lg transition-all shadow-md"
             >
               {isSavingPolygon ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-              {isSavingPolygon ? "Salvando..." : "Salvar Contorno Real"}
+              {isSavingPolygon ? "Salvando..." : "Salvar Contorno no Talhão"}
             </button>
           </div>
         </div>
       )}
 
-      {/* Map Container */}
-      <div className="relative w-full h-[520px] z-0">
+      {/* Contêiner do Mapa com Google Earth */}
+      <div className="relative w-full h-[540px] z-0">
         <MapContainer
           center={mapCenter}
           zoom={14}
@@ -404,72 +639,153 @@ export default function FieldMapGisClient({
         >
           <MapFlyTo center={mapCenter} />
           <MapClickHandler
-            isDrawingMode={isDrawingMode}
+            mode={activeMode}
             onAddPoint={handleAddDrawnPoint}
-            onSelectLocation={(lat, lng) => {
-              setClickedPin({ lat, lng });
-            }}
+            onDropMarker={handleDropMarker}
           />
 
+          {/* Camadas do Mapa com Google Earth como Padrão */}
           <LayersControl position="topright">
-            <LayersControl.BaseLayer checked name="Satélite HD (Esri)">
+            <LayersControl.BaseLayer checked name="Google Earth (Satélite HD + Nomes)">
               <TileLayer
-                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-                attribution="Tiles &copy; Esri &mdash; Source: Esri, USDA, USGS, GIS User Community"
+                url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
+                attribution="Imagens de Satélite &copy; Google Earth"
+                maxZoom={20}
               />
             </LayersControl.BaseLayer>
-            <LayersControl.BaseLayer name="Mapa de Ruas (OSM)">
+            <LayersControl.BaseLayer name="Google Earth (Satélite Puro HD)">
               <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{y}/{x}.png"
-                attribution="&copy; OpenStreetMap contributors"
+                url="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
+                attribution="Imagens de Satélite &copy; Google Earth"
+                maxZoom={20}
+              />
+            </LayersControl.BaseLayer>
+            <LayersControl.BaseLayer name="Google Maps (Relevo / Terreno)">
+              <TileLayer
+                url="https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}"
+                attribution="Mapas &copy; Google"
+                maxZoom={20}
+              />
+            </LayersControl.BaseLayer>
+            <LayersControl.BaseLayer name="Google Maps (Ruas)">
+              <TileLayer
+                url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+                attribution="Mapas &copy; Google"
+                maxZoom={20}
+              />
+            </LayersControl.BaseLayer>
+            <LayersControl.BaseLayer name="Esri World Imagery">
+              <TileLayer
+                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                attribution="Tiles &copy; Esri"
               />
             </LayersControl.BaseLayer>
           </LayersControl>
 
-          {/* Render Live Polygon Being Drawn */}
+          {/* Polígono em Construção */}
           {drawnPoints.length > 0 && (
             <>
               <Polyline positions={drawnPoints} pathOptions={{ color: "#f59e0b", weight: 3, dashArray: "6, 6" }} />
               {drawnPoints.length >= 3 && (
                 <Polygon
                   positions={drawnPoints}
-                  pathOptions={{ fillColor: "#f59e0b", fillOpacity: 0.35, color: "#f59e0b", weight: 3 }}
+                  pathOptions={{ fillColor: "#f59e0b", fillOpacity: 0.4, color: "#f59e0b", weight: 3 }}
                 />
               )}
               {drawnPoints.map((pt, i) => (
-                <Marker key={i} position={pt} icon={customPinIcon} />
+                <Marker key={i} position={pt} icon={samplePinIcon} />
               ))}
             </>
           )}
 
-          {/* Render Clicked Pin */}
-          {clickedPin && !isDrawingMode && (
-            <Marker position={[clickedPin.lat, clickedPin.lng]} icon={customPinIcon}>
+          {/* Marcador Clicado Temporário */}
+          {activeMarkerForm && (
+            <Marker position={[activeMarkerForm.lat, activeMarkerForm.lng]} icon={clickedPinIcon}>
               <Popup>
                 <div className="p-2 text-slate-900 font-sans text-xs">
-                  <div className="font-bold border-b pb-1 mb-1 text-emerald-800">
-                    📍 Ponto Selecionado no Mapa
+                  <div className="font-bold text-emerald-800 border-b pb-1 mb-1">
+                    📍 {activeMarkerForm.name || "Ponto Clicado"}
                   </div>
-                  <div className="text-slate-600 mb-2 font-mono">
-                    Lat: <strong>{clickedPin.lat.toFixed(5)}</strong> <br />
-                    Lng: <strong>{clickedPin.lng.toFixed(5)}</strong>
-                  </div>
-                  <button
-                    onClick={() => {
-                      toast.success(
-                        `Coordenada selecionada: Lat ${clickedPin.lat.toFixed(5)}, Lng ${clickedPin.lng.toFixed(5)}`
-                      );
-                    }}
-                    className="w-full py-1 px-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-center"
-                  >
-                    Usar Coordenada no Talhão
-                  </button>
+                  <p className="text-slate-600 mb-1">
+                    Lat: <strong>{activeMarkerForm.lat.toFixed(5)}</strong>, Lng:{" "}
+                    <strong>{activeMarkerForm.lng.toFixed(5)}</strong>
+                  </p>
                 </div>
               </Popup>
             </Marker>
           )}
 
-          {/* Render Field Polygons (Organic Contours or Saved Custom Drawn Polygons) */}
+          {/* Marcadores Salvos / Customizados */}
+          {customMarkers.map((marker) => (
+            <Marker
+              key={marker.id}
+              position={[marker.lat, marker.lng]}
+              icon={createCustomPinIcon(
+                marker.category === "AMOSTRA"
+                  ? "#f59e0b"
+                  : marker.category === "SEDE"
+                  ? "#3b82f6"
+                  : marker.category === "PIVO"
+                  ? "#06b6d4"
+                  : "#10b981",
+                marker.name
+              )}
+            >
+              <Popup>
+                <div className="p-2 text-slate-900 font-sans text-xs min-w-[180px]">
+                  <div className="font-bold text-sm text-slate-900 border-b pb-1 mb-1">
+                    📍 {marker.name}
+                  </div>
+                  <div className="text-slate-600 space-y-1 mb-2">
+                    <p>Tipo: <strong>{marker.category}</strong></p>
+                    <p className="font-mono text-[10px]">
+                      Lat: {marker.lat.toFixed(5)} <br />
+                      Lng: {marker.lng.toFixed(5)}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteMarker(marker.id)}
+                    className="w-full flex items-center justify-center gap-1 py-1 px-2 bg-red-50 hover:bg-red-100 text-red-700 font-bold rounded border border-red-200 transition-colors"
+                  >
+                    <Trash2 className="w-3 h-3" /> Excluir Marcador
+                  </button>
+                </div>
+              </Popup>
+            </Marker>
+          ))}
+
+          {/* Marcadores Centrais dos Talhões */}
+          {fields
+            .filter((f) => f.latitude && f.longitude)
+            .map((field) => (
+              <Marker
+                key={`field-center-${field.id}`}
+                position={[field.latitude!, field.longitude!]}
+                icon={createCustomPinIcon("#10b981", field.name)}
+              >
+                <Popup>
+                  <div className="p-2 text-slate-900 font-sans text-xs">
+                    <div className="font-bold text-sm text-emerald-800 border-b pb-1 mb-1">
+                      🌱 {field.name}
+                    </div>
+                    <p className="text-slate-600 mb-2">
+                      Área: <strong>{field.area} ha</strong> | Cultura: <strong>{field.crop || "Não definida"}</strong>
+                    </p>
+                    {field.latestAnalysis && (
+                      <Link
+                        href={`/dashboard/analises/${field.latestAnalysis.id}/planejamento`}
+                        className="w-full block py-1 px-2 bg-emerald-600 text-white font-bold rounded text-center !no-underline"
+                        style={{ color: "#ffffff" }}
+                      >
+                        Ver Laudo & Planejamento
+                      </Link>
+                    )}
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
+
+          {/* Polígonos dos Talhões no Google Earth */}
           {fields.map((field, idx) => {
             const polygonCoords =
               field.coordinates && field.coordinates.length >= 3
@@ -539,27 +855,27 @@ export default function FieldMapGisClient({
           })}
         </MapContainer>
 
-        {/* Floating Legend */}
-        <div className="absolute bottom-4 left-4 z-[400] bg-black/80 backdrop-blur-md border border-white/10 rounded-2xl p-3 text-xs text-white shadow-xl max-w-xs">
-          <div className="font-semibold text-white/80 mb-2 flex items-center gap-1">
-            <Info className="w-3.5 h-3.5 text-brand-main" /> Legenda de Fertilidade ({filterNutrient})
+        {/* Legenda Flutuante do Google Earth */}
+        <div className="absolute bottom-4 left-4 z-[400] bg-slate-900/90 backdrop-blur-md border border-slate-700 rounded-2xl p-3 text-xs text-white shadow-2xl max-w-xs">
+          <div className="font-bold text-white/90 mb-2 flex items-center gap-1.5">
+            <Info className="w-3.5 h-3.5 text-emerald-400" /> Legenda de Fertilidade ({filterNutrient})
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 font-medium">
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full bg-emerald-500 border border-emerald-300" />
-              <span className="text-white/70">Nível Adequado / Elevado</span>
+              <span className="text-slate-200">Adequado / Elevado</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full bg-yellow-500 border border-yellow-300" />
-              <span className="text-white/70">Nível Médio (Atenção)</span>
+              <span className="text-slate-300">Nível Médio (Atenção)</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full bg-red-500 border border-red-300" />
-              <span className="text-white/70">Nível Crítico (Necessita Correção)</span>
+              <span className="text-slate-300">Crítico (Calagem/Adubação)</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-slate-400 border border-slate-300" />
-              <span className="text-white/50">Sem Análise Cadastrada</span>
+              <span className="w-3 h-3 rounded-full bg-slate-500 border border-slate-400" />
+              <span className="text-slate-400">Sem Análise Registrada</span>
             </div>
           </div>
         </div>

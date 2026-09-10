@@ -83,3 +83,38 @@ export async function saveChatMessage(sessionId: string, role: "user" | "ai", te
 
   return message;
 }
+
+export async function getUserAnalyses() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return [];
+
+  const analyses = await prisma.soilAnalysis.findMany({
+    where: {
+      field: {
+        property: {
+          userId: session.user.id,
+        },
+      },
+    },
+    include: {
+      field: {
+        include: {
+          property: true,
+        },
+      },
+    },
+    orderBy: {
+      date: "desc",
+    },
+    take: 20,
+  });
+
+  return analyses.map((a) => ({
+    id: a.id,
+    fieldName: a.field.name,
+    propertyName: a.field.property.name,
+    crop: a.culturaDesejada || a.field.crop || "Não informada",
+    date: a.date.toISOString(),
+  }));
+}
+
