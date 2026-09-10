@@ -13,12 +13,15 @@ import {
   HelpCircle,
   Clock,
   Star,
+  FlaskConical,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSearchParams } from "next/navigation";
 
 const MP_MONTHLY_LINK = "https://mpago.la/1S7FPd4";
 const MP_YEARLY_LINK = "https://mpago.la/1E5uXrf";
+const MP_TEST_LINK = "https://mpago.la/1VckRsc";
 
 export default function SubscriptionPage() {
   const [userStatus, setUserStatus] = useState<{
@@ -28,66 +31,56 @@ export default function SubscriptionPage() {
     email?: string;
   }>({ status: "TRIAL" });
   const [loadingUser, setLoadingUser] = useState(true);
-  const [selectedPlan, setSelectedPlan] = useState<"monthly" | "yearly">("yearly");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<"monthly" | "yearly" | "test">("yearly");
 
   const searchParams = useSearchParams();
   const statusParam = searchParams.get("status");
 
+  const fetchProfile = async () => {
+    setIsRefreshing(true);
+    try {
+      const res = await fetch("/api/user/profile");
+      if (res.ok) {
+        const data = await res.json();
+        setUserStatus({
+          status: data.subscriptionStatus || "TRIAL",
+          endsAt: data.subscriptionEndsAt,
+          createdAt: data.createdAt,
+          email: data.email,
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingUser(false);
+      setIsRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
   useEffect(() => {
     if (statusParam === "success") {
       toast.success("Pagamento/Assinatura processada com sucesso! Atualizando seus benefícios...");
+      fetchProfile();
     } else if (statusParam === "expired") {
       toast.error("Seu período de teste grátis expirou. Escolha um plano para reativar seu acesso total!");
     }
   }, [statusParam]);
 
-  useEffect(() => {
-    async function fetchProfile() {
-      try {
-        const res = await fetch("/api/user/profile");
-        if (res.ok) {
-          const data = await res.json();
-          setUserStatus({
-            status: data.subscriptionStatus || "TRIAL",
-            endsAt: data.subscriptionEndsAt,
-            createdAt: data.createdAt,
-            email: data.email,
-          });
-        }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoadingUser(false);
-      }
-    }
-    fetchProfile();
-  }, []);
+  const handleSubscribe = (plan: "monthly" | "yearly" | "test") => {
+    let targetLink = MP_YEARLY_LINK;
+    if (plan === "monthly") targetLink = MP_MONTHLY_LINK;
+    if (plan === "test") targetLink = MP_TEST_LINK;
 
-  const handleSubscribe = (plan: "monthly" | "yearly") => {
-    const targetLink = plan === "yearly" ? MP_YEARLY_LINK : MP_MONTHLY_LINK;
     toast.info("Redirecionando para o ambiente seguro do Mercado Pago...");
     window.location.href = targetLink;
   };
 
   const isPro = userStatus.status === "ACTIVE";
-
-  let trialDaysLeft = 0;
-  let isTrialExpired = false;
-
-  if (!isPro) {
-    const now = new Date();
-    let endsAt: Date;
-    if (userStatus.endsAt) {
-      endsAt = new Date(userStatus.endsAt);
-    } else if (userStatus.createdAt) {
-      const created = new Date(userStatus.createdAt);
-      endsAt = new Date(created.getTime() + 7 * 24 * 60 * 60 * 1000);
-    } else {
-      endsAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-    }
-    trialDaysLeft = Math.max(0, Math.ceil((endsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
-    isTrialExpired = now > endsAt;
-  }
 
   return (
     <div className="max-w-6xl mx-auto pb-16 animate-in fade-in duration-500">
@@ -103,8 +96,8 @@ export default function SubscriptionPage() {
           Gerencie fazendas, analise solos com IA, emita laudos em PDF oficial e impulsione sua produtividade com o Cultiva.
         </p>
 
-        {/* Toggle de Período */}
-        <div className="mt-8 inline-flex items-center bg-slate-200 p-1.5 rounded-2xl border border-slate-300 shadow-inner">
+        {/* Toggle de Período com Opção de Teste de R$ 1,00 */}
+        <div className="mt-8 inline-flex flex-wrap items-center justify-center bg-slate-200 p-1.5 rounded-2xl border border-slate-300 shadow-inner gap-1">
           <button
             onClick={() => setSelectedPlan("monthly")}
             className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all ${
@@ -113,7 +106,7 @@ export default function SubscriptionPage() {
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            Cobrança Mensal (R$ 99,90)
+            Mensal (R$ 99,90)
           </button>
           <button
             onClick={() => setSelectedPlan("yearly")}
@@ -123,10 +116,21 @@ export default function SubscriptionPage() {
                 : "text-slate-700 hover:text-slate-900"
             }`}
           >
-            Cobrança Anual (R$ 999,90)
+            Anual (R$ 999,90)
             <span className="text-[10px] bg-brand-accent text-white px-2 py-0.5 rounded-full uppercase tracking-wider font-black">
               2 Meses Grátis
             </span>
+          </button>
+          <button
+            onClick={() => setSelectedPlan("test")}
+            className={`px-4 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-1.5 ${
+              selectedPlan === "test"
+                ? "bg-amber-500 text-white shadow-md"
+                : "text-amber-800 hover:bg-amber-100"
+            }`}
+          >
+            <FlaskConical className="w-4 h-4" />
+            Teste Real (R$ 1,00)
           </button>
         </div>
       </header>
@@ -155,11 +159,19 @@ export default function SubscriptionPage() {
               >
                 {loadingUser ? "Verificando..." : isPro ? "PLANO PRO ATIVO" : "SEM ASSINATURA ATIVA"}
               </span>
+              <button
+                onClick={fetchProfile}
+                disabled={isRefreshing}
+                title="Atualizar status"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 transition-colors"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
+              </button>
             </div>
             <p className="text-xs text-slate-500 font-medium mt-0.5">
               {isPro
                 ? "Sua assinatura está ativa com acesso ilimitado a todas as ferramentas."
-                : "Para liberar e utilizar todas as ferramentas do Cultiva, escolha e assine um dos planos abaixo."}
+                : `E-mail cadastrado: ${userStatus.email || "seu e-mail"} • Escolha um plano para ativar o acesso total.`}
             </p>
           </div>
         </div>
@@ -170,10 +182,33 @@ export default function SubscriptionPage() {
             className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-brand-main hover:bg-brand-light text-white font-bold text-sm transition-all shadow-md flex items-center justify-center gap-2 whitespace-nowrap shrink-0"
           >
             <Zap className="w-4 h-4 text-yellow-300" />
-            Ativar Plano PRO Agora
+            {selectedPlan === "test" ? "Testar com Cartão Real por R$ 1,00" : "Ativar Plano PRO Agora"}
           </button>
         )}
       </div>
+
+      {/* Se o plano de teste estiver selecionado, exibe card de destaque de teste de R$ 1,00 */}
+      {selectedPlan === "test" && (
+        <div className="bg-amber-50 border-2 border-amber-300 rounded-3xl p-8 mb-12 shadow-md flex flex-col md:flex-row items-center justify-between gap-6 animate-in fade-in">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-200/60 text-amber-900 font-bold text-xs uppercase tracking-wider">
+              <FlaskConical className="w-3.5 h-3.5 text-amber-800" /> Ambiente de Validação Real
+            </div>
+            <h3 className="text-2xl font-bold text-slate-900">Plano de Teste Rápido — R$ 1,00</h3>
+            <p className="text-slate-700 text-sm font-medium max-w-xl leading-relaxed">
+              Use este link para pagar <strong>R$ 1,00 com cartão de crédito real</strong> (ou PIX). Ao concluir o pagamento no Mercado Pago usando o mesmo e-mail (<strong>{userStatus.email || "do seu cadastro"}</strong>), sua conta no Cultiva será liberada automaticamente como <strong>PLANO PRO</strong>!
+            </p>
+          </div>
+
+          <button
+            onClick={() => handleSubscribe("test")}
+            className="px-8 py-4 bg-amber-600 hover:bg-amber-500 text-white font-bold text-base rounded-2xl transition-all shadow-lg shadow-amber-600/30 flex items-center gap-2 whitespace-nowrap shrink-0"
+          >
+            <CreditCard className="w-5 h-5" />
+            Pagar R$ 1,00 no Mercado Pago
+          </button>
+        </div>
+      )}
 
       {/* Cards Comparativos (Mensal vs Anual) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
@@ -274,7 +309,7 @@ export default function SubscriptionPage() {
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> Suporte Prioritário VIP via WhatsApp
               </div>
               <div className="flex items-center gap-2.5 font-semibold text-slate-200">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> Acesso Antecipado aos Novos Recurso de IA
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> Acesso Antecipado aos Novos Recursos de IA
               </div>
             </div>
           </div>
@@ -330,4 +365,3 @@ export default function SubscriptionPage() {
     </div>
   );
 }
-

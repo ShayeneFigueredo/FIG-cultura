@@ -24,20 +24,29 @@ export async function POST(req: Request) {
       const preapprovalApi = new PreApproval(client);
       const preapprovalData = await preapprovalApi.get({ id: dataId });
 
-      const userId = preapprovalData.external_reference;
+      const externalRef = preapprovalData.external_reference;
+      const payerEmail = (preapprovalData as any).payer_email || (preapprovalData as any).payer?.email;
       const mpStatus = preapprovalData.status; // authorized, paused, cancelled
 
-      if (userId) {
+      // Buscar usuário pelo ID ou pelo E-mail do pagador
+      let targetUser = null;
+      if (externalRef) {
+        targetUser = await prisma.user.findUnique({ where: { id: externalRef } });
+      }
+      if (!targetUser && payerEmail) {
+        targetUser = await prisma.user.findUnique({ where: { email: payerEmail.toLowerCase().trim() } });
+      }
+
+      if (targetUser) {
         let status = "ACTIVE";
         if (mpStatus === "cancelled") status = "CANCELED";
         else if (mpStatus === "paused") status = "PAST_DUE";
 
-        // Expiração estimada em 30 dias a partir da autorização
         const endsAt = new Date();
         endsAt.setDate(endsAt.getDate() + 30);
 
         await prisma.user.update({
-          where: { id: userId },
+          where: { id: targetUser.id },
           data: {
             subscriptionStatus: status,
             mpPreapprovalId: preapprovalData.id,
@@ -50,15 +59,24 @@ export async function POST(req: Request) {
       const paymentApi = new Payment(client);
       const paymentData = await paymentApi.get({ id: dataId });
 
-      const userId = paymentData.external_reference;
+      const externalRef = paymentData.external_reference;
+      const payerEmail = paymentData.payer?.email;
       const paymentStatus = paymentData.status;
 
-      if (userId && paymentStatus === "approved") {
+      let targetUser = null;
+      if (externalRef) {
+        targetUser = await prisma.user.findUnique({ where: { id: externalRef } });
+      }
+      if (!targetUser && payerEmail) {
+        targetUser = await prisma.user.findUnique({ where: { email: payerEmail.toLowerCase().trim() } });
+      }
+
+      if (targetUser && (paymentStatus === "approved" || paymentStatus === "authorized")) {
         const endsAt = new Date();
         endsAt.setDate(endsAt.getDate() + 30);
 
         await prisma.user.update({
-          where: { id: userId },
+          where: { id: targetUser.id },
           data: {
             subscriptionStatus: "ACTIVE",
             subscriptionEndsAt: endsAt,
