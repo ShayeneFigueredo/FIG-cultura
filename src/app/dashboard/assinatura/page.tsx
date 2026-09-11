@@ -77,6 +77,18 @@ export default function SubscriptionPage() {
 
   const isPro = userStatus.status === "ACTIVE";
 
+  // Calcula status de teste
+  let isTrialActive = false;
+  let trialDaysLeft = 0;
+  if (!isPro && userStatus.createdAt) {
+    const now = new Date();
+    const endsAt = userStatus.endsAt
+      ? new Date(userStatus.endsAt)
+      : new Date(new Date(userStatus.createdAt).getTime() + 7 * 24 * 60 * 60 * 1000);
+    isTrialActive = now <= endsAt && userStatus.status !== "CANCELED" && userStatus.status !== "PAST_DUE";
+    trialDaysLeft = Math.max(0, Math.ceil((endsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+  }
+
   return (
     <div className="max-w-6xl mx-auto pb-16 animate-in fade-in duration-500">
       {/* Header Banner */}
@@ -126,7 +138,9 @@ export default function SubscriptionPage() {
             className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border-2 ${
               isPro
                 ? "bg-emerald-50 border-emerald-300 text-emerald-700"
-                : "bg-amber-50 border-amber-300 text-amber-700"
+                : isTrialActive
+                ? "bg-amber-50 border-amber-300 text-amber-700"
+                : "bg-red-50 border-red-300 text-red-700"
             }`}
           >
             {isPro ? <ShieldCheck className="w-6 h-6" /> : <Clock className="w-6 h-6" />}
@@ -138,10 +152,18 @@ export default function SubscriptionPage() {
                 className={`text-xs px-2.5 py-0.5 rounded-full font-bold uppercase ${
                   isPro
                     ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                    : "bg-amber-100 text-amber-800 border border-amber-300"
+                    : isTrialActive
+                    ? "bg-amber-100 text-amber-800 border border-amber-300"
+                    : "bg-red-100 text-red-800 border border-red-300"
                 }`}
               >
-                {loadingUser ? "Verificando..." : isPro ? "PLANO PRO ATIVO" : "SEM ASSINATURA ATIVA"}
+                {loadingUser
+                  ? "Verificando..."
+                  : isPro
+                  ? "PLANO PRO ATIVO"
+                  : isTrialActive
+                  ? `TESTE GRÁTIS (${trialDaysLeft} ${trialDaysLeft === 1 ? "DIA RESTANTE" : "DIAS RESTANTES"})`
+                  : "TESTE EXPIRADO"}
               </span>
               <button
                 onClick={fetchProfile}
@@ -155,7 +177,9 @@ export default function SubscriptionPage() {
             <p className="text-xs text-slate-500 font-medium mt-0.5">
               {isPro
                 ? "Sua assinatura está ativa com acesso ilimitado a todas as ferramentas."
-                : "Para liberar e utilizar todas as ferramentas do Cultiva, escolha e assine um dos planos abaixo."}
+                : isTrialActive
+                ? `Você está no período de avaliação gratuita. Restam ${trialDaysLeft} dias de acesso completo.`
+                : "Seu período de teste grátis terminou. Assine um dos planos para reativar seu acesso."}
             </p>
           </div>
         </div>

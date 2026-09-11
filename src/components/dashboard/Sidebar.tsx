@@ -190,11 +190,22 @@ export function Sidebar({ user, subscription }: { user: SidebarUser; subscriptio
                   <span>Plano PRO</span>
                   <span className="bg-emerald-500/20 px-2 py-0.5 rounded-full text-[10px] uppercase">Ativo</span>
                 </div>
-              ) : (
+              ) : !isTrialExpired ? (
                 <Link href="/dashboard/assinatura" className="block text-amber-300 font-bold hover:underline">
                   <div className="flex items-center justify-between">
-                    <span>Sem Assinatura</span>
-                    <span className="bg-amber-500/20 px-2 py-0.5 rounded-full text-[10px] uppercase">Assinar</span>
+                    <span>Teste Grátis</span>
+                    <span className="bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full text-[10px] uppercase font-bold">
+                      {trialDaysLeft} {trialDaysLeft === 1 ? "dia" : "dias"}
+                    </span>
+                  </div>
+                </Link>
+              ) : (
+                <Link href="/dashboard/assinatura" className="block text-red-400 font-bold hover:underline">
+                  <div className="flex items-center justify-between">
+                    <span>Teste Expirado</span>
+                    <span className="bg-red-500/20 text-red-300 px-2 py-0.5 rounded-full text-[10px] uppercase font-bold">
+                      Assinar
+                    </span>
                   </div>
                 </Link>
               )}

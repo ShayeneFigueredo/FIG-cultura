@@ -32,8 +32,8 @@ export async function POST(req: Request) {
         email: normalizedEmail,
         password: hashedPassword,
         avatarUrl: avatarUrl || null,
-        subscriptionStatus: "PENDING",
-        subscriptionEndsAt: null,
+        subscriptionStatus: "TRIAL",
+        subscriptionEndsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       }
     });
 
